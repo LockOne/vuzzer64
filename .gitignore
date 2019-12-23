@@ -48,3 +48,7 @@ libdft64/tools/junk.*
 *.swp
 *~
 *.swo
+
+
+fuzzer-code/env
+fuzzer-code/vutemp

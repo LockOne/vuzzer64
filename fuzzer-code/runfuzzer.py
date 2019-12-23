@@ -70,7 +70,7 @@ def check_env():
 
 def run(cmd):
     #print "[*] Just about to run ", cmd
-    proc = subprocess.Popen(" ".join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)	
+    proc = subprocess.Popen(" ".join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)    
     stdout, stderr = proc.communicate()
     #print "[*] Run complete..\n"
     #print "## RC %d"%proc.returncode
@@ -219,7 +219,7 @@ def execute2(tfl,fl, is_initial=0):
       runcmd = [pargs[0], args, fl, str(config.TIMEOUT)]
     #pargs[pargs.index("inputf")]=fl
     #runcmd=pargs + args.split.split(' ')
-    
+    #runcmd : ['./run_2.sh', '"../subjects/who /home/cheong/vuzzer64/fuzzer-code/datatemp/who/utmp0"', 'utmp0', '0'] 
     #print "[*] Executing: ",runcmd 
     retc = run(runcmd)
     if config.CLEANOUT == True:
@@ -246,10 +246,10 @@ def get_non_empty(mat, num):
     ind=num
     #mi = 1000000
     while ind < num+9:
-	# I have changed this
+    # I have changed this
         if mat.group(ind) !='':
             #mi = min(mi, int(mat.group(ind)))
-	    return mat.group(ind)
+            return mat.group(ind)
         ind +=1
     #if mi == 1000000:
     return -1
@@ -267,7 +267,7 @@ def read_lea():
         try:# this is a check to see if lea entry is complete.
           if config.BIT64 == False:
             rr=mat.group(6)
-	  else:
+          else:
             rr=mat.group(10)
         except:
             continue
@@ -294,8 +294,8 @@ def read_taint(fpath):
     fsize=os.path.getsize(fpath)
     offlimit=0
     #check if taint was generated, else exit
-    if (os.path.getsize("cmp.out") ==0):
-        gau.die("Empty cmp.out file! Perhaps taint analysis did not run...")
+    if ((not os.path.isfile("cmp.out")) or os.path.getsize("cmp.out") ==0):
+      gau.die("Empty cmp.out file! Perhaps taint analysis did not run...")
     cmpFD=open("cmp.out","r")
     # each line of the cmp.out has the following format:
     #32 reg imm 0xb640fb9d {155} {155} {155} {155} {} {} {} {} 0xc0 0xff
@@ -306,129 +306,128 @@ def read_taint(fpath):
     else:
       pat=re.compile(r"(\d+) ([a-z]+) ([a-z]+) (\w+) \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} (\w+) (\w+)",re.I)
     for ln in cmpFD:
-        if offlimit>config.MAXFILELINE:
-            break
-        offlimit +=1
-        mat=pat.match(ln)
-        try:# this is a check to see if CMP entry is complete.
-          if config.BIT64 == False:
-            rr=mat.group(14)
-	  else:
-            rr=mat.group(22)
-        except:
+      if offlimit>config.MAXFILELINE:
+        break
+      offlimit +=1
+      mat=pat.match(ln)
+      try:# this is a check to see if CMP entry is complete.
+        if config.BIT64 == False:
+          rr=mat.group(14)
+        else:
+          rr=mat.group(22)
+      except:
+        continue
+
+      if config.BIT64 == False:
+        op1start = 5
+        op2start = 9
+        op1val = 13
+        op2val = 14
+      else:
+        op1start = 5
+        op2start = 13
+        op1val = 21
+        op2val = 22
+      if config.ALLCMPOP == True:
+        if mat.group(op1start) =='' and mat.group(op2start) !='':
+          tempoff=get_non_empty(mat,op2start)#mat.group(9)
+          if tempoff ==-1:
             continue
-
- 	if config.BIT64 == False:
-	  op1start = 5
-          op2start = 9
-	  op1val = 13
-	  op2val = 14
+          ofs,hexstr=extract_offsetStr(tempoff,mat.group(op1val),fsize)
+        elif mat.group(op2start) =='' and mat.group(op1start) !='':
+          tempoff=get_non_empty(mat,op1start)#mat.group(5)
+          if tumpoff ==-1:
+            continue
+          ofs,hexstr=extract_offsetStr(tempoff,mat.group(op2val),fsize)
         else:
-	  op1start = 5
-          op2start = 13
-          op1val = 21
-	  op2val = 22
-        if config.ALLCMPOP == True:
-            if mat.group(op1start) =='' and mat.group(op2start) !='':
-                tempoff=get_non_empty(mat,op2start)#mat.group(9)
-                if tempoff ==-1:
-                    continue
-                ofs,hexstr=extract_offsetStr(tempoff,mat.group(op1val),fsize)
-            elif mat.group(op2start) =='' and mat.group(op1start) !='':
-                tempoff=get_non_empty(mat,op1start)#mat.group(5)
-                if tumpoff ==-1:
-                    continue
-                ofs,hexstr=extract_offsetStr(tempoff,mat.group(op2val),fsize)
-            else:
-                ofs,hexstr=(-1000,[])
+          ofs,hexstr=(-1000,[])
 
-            if ofs !=-1000:
-                if config.ALLBYTES==True or (hexstr !='\xff\xff\xff\xff' and hexstr != '\x00'):#this is a special case
-                    if ofs not in taintOff:
-                        taintOff[ofs]=[hexstr]# we are going to change set to list for "last" offset checked.
-                    else:
-                    #if hexstr not in taintOff[ofs]:
-                        if config.ALLBYTES == True or isNonPrintable(hexstr) ==False:
-                            taintOff[ofs].append(hexstr)
-
+        if ofs !=-1000:
+          if config.ALLBYTES==True or (hexstr !='\xff\xff\xff\xff' and hexstr != '\x00'):#this is a special case
+            if ofs not in taintOff:
+              taintOff[ofs]=[hexstr]# we are going to change set to list for "last" offset checked.
             else:
-                alltaintoff.update(set(hexstr))
+            #if hexstr not in taintOff[ofs]:
+              if config.ALLBYTES == True or isNonPrintable(hexstr) ==False:
+                taintOff[ofs].append(hexstr)
+
         else:
-            if mat.group(2) == 'imm':
-                tempoff=get_non_empty(mat,op2start)#mat.group(9)
-                if tempoff == -1:
-                    continue
-                ofs,hexstr=extract_offsetStr(tempoff,mat.group(op1val),fsize)
-                if ofs !=-1000:
-                    if config.ALLBYTES == True or (hexstr !='\xff\xff\xff\xff' and hexstr != '\x00'):#this is a special case
-                        if ofs not in taintOff:
-                            taintOff[ofs]=[hexstr]# we are going to change set to list for "last" offset checked.
-                        else:
-                            #if hexstr not in taintOff[ofs]:
-                            if config.ALLBYTES == True or isNonPrintable(hexstr) ==False:
-                                taintOff[ofs].append(hexstr)
-                else:
-                    #alltaintoff.update(set(offsets))
-                    alltaintoff.update(set(hexstr))
-            elif mat.group(3) == 'imm':
-                tempoff=get_non_empty(mat,op1start)#mat.group(5)
-                if tempoff == -1:
-                    continue
-                ofs,hexstr=extract_offsetStr(tempoff,mat.group(op2val),fsize)
+          alltaintoff.update(set(hexstr))
+      else:
+        if mat.group(2) == 'imm':
+          tempoff=get_non_empty(mat,op2start)#mat.group(9)
+          if tempoff == -1:
+            continue
+          ofs,hexstr=extract_offsetStr(tempoff,mat.group(op1val),fsize)
+          if ofs !=-1000:
+            if config.ALLBYTES == True or (hexstr !='\xff\xff\xff\xff' and hexstr != '\x00'):#this is a special case
+              if ofs not in taintOff:
+                taintOff[ofs]=[hexstr]# we are going to change set to list for "last" offset checked.
+              else:
+              #if hexstr not in taintOff[ofs]:
+                if config.ALLBYTES == True or isNonPrintable(hexstr) ==False:
+                  taintOff[ofs].append(hexstr)
+          else:
+            #alltaintoff.update(set(offsets))
+            alltaintoff.update(set(hexstr))
+        elif mat.group(3) == 'imm':
+          tempoff=get_non_empty(mat,op1start)#mat.group(5)
+          if tempoff == -1:
+            continue
+          ofs,hexstr=extract_offsetStr(tempoff,mat.group(op2val),fsize)
             
-                if ofs !=-1000:
-                    if config.ALLBYTES == True or (hexstr !='\xff\xff\xff\xff' and hexstr !='\x00'):#this is a special case
-                        if ofs not in taintOff:
-                            taintOff[ofs]=[hexstr]# we are going to change set to list for "last" offset checked.
-                        else:
-                            #if hexstr not in taintOff[ofs]:
-                            if config.ALLBYTES == True or isNonPrintable(hexstr) ==False:
-                                taintOff[ofs].append(hexstr)
+          if ofs !=-1000:
+            if config.ALLBYTES == True or (hexstr !='\xff\xff\xff\xff' and hexstr !='\x00'):#this is a special case
+              if ofs not in taintOff:
+                taintOff[ofs]=[hexstr]# we are going to change set to list for "last" offset checked.
+              else:
+                #if hexstr not in taintOff[ofs]:
+                if config.ALLBYTES == True or isNonPrintable(hexstr) ==False:
+                  taintOff[ofs].append(hexstr)
 
-                else:
-                    alltaintoff.update(set(hexstr))
-            elif ((mat.group(2) == 'mem' and mat.group(3) =='mem') or (mat.group(2) == 'reg' and mat.group(3) =='reg')):
-                #bylen=mat.group(1)/8
-                #if bylen == 1:
-                #TOFIX: I am assuming that CMPS has second operand as constant and 1st operand is the byte from the input that we want to compare with 2nd operand. We need to handle the case when these operands are swapped.
-                if mat.group(op1start) =='' and mat.group(op2start) !='':
-
-                    tempoff=get_non_empty(mat,op2start)#mat.group(9)
-                    if tempoff ==-1:
-                        continue
-                    ofs,hexstr=extract_offsetStr(tempoff,mat.group(op1val),fsize)
-                elif mat.group(op2start) =='' and mat.group(op1start) !='':
-                    tempoff=get_non_empty(mat,op1start)#mat.group(5)
-                    if tempoff ==-1:
-                        continue
-                    ofs,hexstr=extract_offsetStr(tempoff,mat.group(op2val),fsize)
-                else:
-                    ofs,hexstr=(-1000,[])
+          else:
+            alltaintoff.update(set(hexstr))
+        elif ((mat.group(2) == 'mem' and mat.group(3) =='mem') or (mat.group(2) == 'reg' and mat.group(3) =='reg')):
+          #bylen=mat.group(1)/8
+          #if bylen == 1:
+          #TOFIX: I am assuming that CMPS has second operand as constant and 1st operand is the byte from the input that we want to compare with 2nd operand. We need to handle the case when these operands are swapped.
+          if mat.group(op1start) =='' and mat.group(op2start) !='':
+            tempoff=get_non_empty(mat,op2start)#mat.group(9)
+            if tempoff ==-1:
+              continue
+            ofs,hexstr=extract_offsetStr(tempoff,mat.group(op1val),fsize)
+          elif mat.group(op2start) =='' and mat.group(op1start) !='':
+            tempoff=get_non_empty(mat,op1start)#mat.group(5)
+            if tempoff ==-1:
+              continue
+            ofs,hexstr=extract_offsetStr(tempoff,mat.group(op2val),fsize)
+          else:
+            ofs,hexstr=(-1000,[])
      
-                if ofs !=-1000:
-                    if config.ALLBYTES == True or (hexstr !='\xff\xff\xff\xff' and hexstr != '\x00'):#this is a special case
-                        if ofs not in taintOff:
-                            taintOff[ofs]=[hexstr]# we are going to change set to list for "last" offset checked.
-                        else:
-                            #if hexstr not in taintOff[ofs]:
-                            if config.ALLBYTES == True or isNonPrintable(hexstr) ==False:
-                                taintOff[ofs].append(hexstr)
+          if ofs !=-1000:
+            if config.ALLBYTES == True or (hexstr !='\xff\xff\xff\xff' and hexstr != '\x00'):#this is a special case
+              if ofs not in taintOff:
+                taintOff[ofs]=[hexstr]# we are going to change set to list for "last" offset checked.
+              else:
+              #if hexstr not in taintOff[ofs]:
+                if config.ALLBYTES == True or isNonPrintable(hexstr) ==False:
+                  taintOff[ofs].append(hexstr)
 
-                else:
-                    alltaintoff.update(set(hexstr))
+          else:
+            alltaintoff.update(set(hexstr))
 
 
-            else:
-                tmpset=set()
-                tmp1=mat.group(op1start)
-                if len(tmp1)>0:
-                    tmpset.update(tmp1.split(','))
-                tmp2=mat.group(op2start)
-                if len(tmp2)>0:
-                    tmpset.update(tmp2.split(','))
-                alltaintoff.update([int(o) for o in tmpset])
-                #alltaintoff.update(tmp1.split(','),tmp2.split(','))
-                #alltaintoff=set([int(o) for o in alltaintoff])
+        else:
+          tmpset=set()
+          tmp1=mat.group(op1start)
+          if len(tmp1)>0:
+            tmpset.update(tmp1.split(','))
+          tmp2=mat.group(op2start)
+          if len(tmp2)>0:
+            tmpset.update(tmp2.split(','))
+          alltaintoff.update([int(o) for o in tmpset])
+          #alltaintoff.update(tmp1.split(','),tmp2.split(','))
+          #alltaintoff=set([int(o) for o in alltaintoff])
     cmpFD.close()
     todel=set()
     for el in alltaintoff:
@@ -453,22 +452,22 @@ def get_taint(dirin, is_initial=0):
     #taintmap=dict()#this is a dictionary to keep taintmap of each input file. Key is the input file name and value is a tuple returned by read_taint, wherein 1st element is a set of all offsets used in cmp and 2nd elment is a dictionary with key a offset and value is a set of values at that offsetthat were found in CMP instructions.
     #mostcommon=dict()# this dictionary keeps offsets which are common across all the inputs with same value set. 
     for fl in files:
-        if fl in config.TAINTMAP:
-            continue
-        pfl=os.path.abspath(os.path.join(dirin,fl))
-	if is_initial == 1:
-		tnow1=datetime.now()
-        rcode=execute2(pfl,fl, is_initial)
-	if is_initial == 1:
-		tnow2=datetime.now()
-		config.TIMEOUT = max(config.TIMEOUT, 2*((tnow2-tnow1).total_seconds()))
-        if rcode ==255:
-            continue
-            gau.die("pintool terminated with error 255 on input %s"%(pfl,))
-        config.TAINTMAP[fl]=read_taint(pfl)
-        config.LEAMAP[fl]=read_lea()          
-        #print config.TAINTMAP[fl][1]
-        #raw_input("press key..")
+      if fl in config.TAINTMAP:
+        continue
+      pfl=os.path.abspath(os.path.join(dirin,fl))
+      if is_initial == 1:
+        tnow1=datetime.now()
+      rcode=execute2(pfl,fl, is_initial)
+      if is_initial == 1:
+        tnow2=datetime.now()
+        config.TIMEOUT = max(config.TIMEOUT, 2*((tnow2-tnow1).total_seconds()))
+      if rcode ==255:
+        #continue #what..?!
+        gau.die("pintool terminated with error 255 on input %s"%(pfl,))
+      config.TAINTMAP[fl]=read_taint(pfl)
+      config.LEAMAP[fl]=read_lea()          
+      #print config.TAINTMAP[fl][1]
+      #raw_input("press key..")
     if config.MOSTCOMFLAG==False:
         #print "computing MOSTCOM calculation..."
         for k1,v1 in config.TAINTMAP.iteritems():
@@ -478,9 +477,6 @@ def get_taint(dirin, is_initial=0):
                     config.TAINTMAP[k1][0].add(off1)
                     #print "[==] ",k1,off1
                     continue
-                    
-                    
-                    
                 for k2,v2 in config.TAINTMAP.iteritems():
                     if off1 not in v2[1]:
                         config.TAINTMAP[k1][0].add(off1)
@@ -577,7 +573,7 @@ def dry_run():
     #  tempcomn = set()
     ###print "[*] finished bad inputs (%d)"%(len(tempbad),)
     config.ERRORBBALL=badbb.copy()
-    print "[*] finished common BB. TOtal such BB: %d"%(len(badbb),)
+    print "[*] finished common BB. Total such BB: %d"%(len(badbb),)
     for ebb in config.ERRORBBALL:
         print "error bb: 0x%x"%(ebb,)
     time.sleep(5)
@@ -727,7 +723,7 @@ def main():
         config.BBFORPRUNE=list(config.cALLBB)
     else:
         print"[*]: cALLBB is not initialized. something is wrong!!\n"
-        system.exit()
+        raise SystemExit(1)
 
     if config.PTMODE:
         pt = simplept.simplept()
@@ -832,7 +828,7 @@ def main():
                     fitnes[fl]=gau.fitnesCal2(bbs,fl,iln)
                 else:
                     fitnes[fl]=gau.fitnesNoWeight(bbs,fl,iln)
-		#raw_input()
+        #raw_input()
                 execs+=1
                 #let us prune the inputs(if at all), whose trace is subset of the new input just got executed.
                 SPECIALADDED= False

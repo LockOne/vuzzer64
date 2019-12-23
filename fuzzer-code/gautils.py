@@ -425,7 +425,8 @@ def prepareLibBBOffsets(loffset):
 
 def fitnesCal2(bbdict, cinput,ilen):
     '''
-    calculates fitness of each input based on its execution trace. The difference from "fitnesCal()" is that it again multiplies fitnes score by the number of BB executed.
+    calculates fitness of each input based on its execution trace.
+    The difference from "fitnesCal()" is that it again multiplies fitnes score by the number of BB executed.
     '''
     
     config.GOTSPECIAL=False
@@ -440,8 +441,8 @@ def fitnesCal2(bbdict, cinput,ilen):
     
     tset=set(bbdict)-tempset # we make sure that newly discovered BBs are not related to error BB.
     config.cPERGENBB.update(tset)
-    if not tset <=config.SEENBB:# and not tset <=tempset:
-        diffb=tset-config.SEENBB
+    if not tset <= config.SEENBB:# and not tset <=tempset:
+        diffb=tset-config.SEENBB  #new coverage!
         #let input pruning, lets set the flag is this input has found a new BB
         config.GOTSPECIAL=True
         config.SEENBB.update(diffb)

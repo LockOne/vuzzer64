@@ -210,7 +210,11 @@ def isNonPrintable(hexstr):
         return False
 
 def execute2(tfl,fl, is_initial=0):
-    args=config.SUT % tfl
+    '''tfl : absolute path of input, fl : given path, '''
+    if config.SUT[0] != '\\':
+      args= os.path.abspath(os.path.join(os.getcwd(), config.SUT)) % tfl
+    else:
+      args= config.SUT % tfl
     args='\"' + args + '\"' # For cmd shell
     pargs=config.PINTNTCMD[:]
     if is_initial == 1:
@@ -219,15 +223,15 @@ def execute2(tfl,fl, is_initial=0):
       runcmd = [pargs[0], args, fl, str(config.TIMEOUT)]
     #pargs[pargs.index("inputf")]=fl
     #runcmd=pargs + args.split.split(' ')
-    #runcmd : ['./run_2.sh', '"../subjects/who /home/cheong/vuzzer64/fuzzer-code/datatemp/who/utmp0"', 'utmp0', '0'] 
-    #print "[*] Executing: ",runcmd 
+    print "[*] Executing: "," ".join(runcmd)
     retc = run(runcmd)
     if config.CLEANOUT == True:
         gau.delete_out_file(tfl)
     return retc
 
 def extract_offsetStr(offStr,hexs,fsize):
-    '''Given a string of offsets, separated by comma and other offset num, this function return a tuple of offset and hex_string.'''
+    '''offStr : {4,5,6} hexs : 0x5a76616c  fsize : byte size of the entire file'''
+    '''Given a string of offsets, separated by comma and other offset num, this function return a tuple of first offset and hex_string.'''
     offsets=offStr.split(',')
     offsets=[int(o) for o in offsets]
     if len(offsets)<5:#==1:#<5:
@@ -284,8 +288,9 @@ def read_lea():
 
 
 def read_taint(fpath):
-    ''' This function read cmp.out file and parses it to extract offsets and coresponding values and returns a tuple(alltaint, dict).
-    dictionary: with key as offset and values as a set of hex values checked for that offset in the cmp instruction. Currently, we want to extract values s.t. one of the operands of CMP instruction is imm value for this set of values.
+    ''' This function read cmp.out file and parses it to extract offsets and coresponding values and returns a tuple(alltaint, taintoff).
+    taintoff: {offset -> a set of hex values} (hex values which are checked for that offset in the cmp instruction.)
+    Currently, we want to extract values s.t. one of the operands of CMP instruction is imm value for this set of values.
     ADDITION: we also read lea.out file to know offsets that were used in LEA instructions. There offsets are good candidates to fuzz with extreme values, like \xffffffff, \x80000000.
     '''
 
@@ -295,7 +300,9 @@ def read_taint(fpath):
     offlimit=0
     #check if taint was generated, else exit
     if ((not os.path.isfile("cmp.out")) or os.path.getsize("cmp.out") ==0):
-      gau.die("Empty cmp.out file! Perhaps taint analysis did not run...")
+      print "[*] Warning! empty cmp.out file!"
+      return (alltaintoff, taintOff)
+      #gau.die("Empty cmp.out file! Perhaps taint analysis did not run...")
     cmpFD=open("cmp.out","r")
     # each line of the cmp.out has the following format:
     #32 reg imm 0xb640fb9d {155} {155} {155} {155} {} {} {} {} 0xc0 0xff
@@ -317,7 +324,6 @@ def read_taint(fpath):
           rr=mat.group(22)
       except:
         continue
-
       if config.BIT64 == False:
         op1start = 5
         op2start = 9
@@ -328,7 +334,7 @@ def read_taint(fpath):
         op2start = 13
         op1val = 21
         op2val = 22
-      if config.ALLCMPOP == True:
+      if config.ALLCMPOP == True: #False by default
         if mat.group(op1start) =='' and mat.group(op2start) !='':
           tempoff=get_non_empty(mat,op2start)#mat.group(9)
           if tempoff ==-1:
@@ -354,8 +360,8 @@ def read_taint(fpath):
         else:
           alltaintoff.update(set(hexstr))
       else:
-        if mat.group(2) == 'imm':
-          tempoff=get_non_empty(mat,op2start)#mat.group(9)
+        if mat.group(2) == 'imm': # possible?
+          tempoff=get_non_empty(mat,op2start)#mat.group(13)
           if tempoff == -1:
             continue
           ofs,hexstr=extract_offsetStr(tempoff,mat.group(op1val),fsize)
@@ -806,7 +812,7 @@ def main():
                 copy_files(config.INPUTD,config.KEEPD,keepfilenum)
                 
         #lets find out some of the error handling BBs
-            if  genran >40 and genran%bbslide==0:
+            if  genran > 40 and genran % bbslide==0:
                 stat.write("\n**** Error BB cal started ****\n")
                 stat.flush()
                 os.fsync(stat.fileno())
@@ -815,64 +821,62 @@ def main():
             #copy_files(config.INITIALD,config.INPUTD,1)
         files=os.listdir(config.INPUTD)
         per_gen_fnum=0
+        #count BB and calculate fitness function for each TC.
         for fl in files:
-                per_gen_fnum +=1
-                tfl=os.path.join(config.INPUTD,fl)
-                iln=os.path.getsize(tfl)
-                args = (config.SUT % tfl).split(' ')
-                progname = os.path.basename(args[0])
-                (bbs,retc)=execute(tfl)
-                if per_gen_fnum % 10 ==0:
-                    print "[**] Gen: %d. Executed %d of %d.**"%(genran,per_gen_fnum,config.POPSIZE)
-                if config.BBWEIGHT == True:
-                    fitnes[fl]=gau.fitnesCal2(bbs,fl,iln)
-                else:
-                    fitnes[fl]=gau.fitnesNoWeight(bbs,fl,iln)
-        #raw_input()
-                execs+=1
-                #let us prune the inputs(if at all), whose trace is subset of the new input just got executed.
-                SPECIALADDED= False
-                if config.GOTSPECIAL==True:
-                    SPECIALCHANGED=True
-                    SPECIALADDED= True
-                    todelete.clear()
-                    form_bitvector2(bbs,fl,config.BBFORPRUNE,config.SPECIALBITVECTORS)
-                    shutil.copy(tfl,config.SPECIAL)
-                    config.SPECIALENTRY.append(fl)
-                    for sfl,bitv in config.SPECIALBITVECTORS.iteritems():
-                        if sfl == fl:
-                            continue
-                        if (config.SPECIALBITVECTORS[fl] & bitv) == bitv:
-                            tpath=os.path.join(config.SPECIAL,sfl)
-                            os.remove(tpath)
-                            todelete.add(sfl)
-                            config.SPECIALENTRY.remove(sfl)
-                            if sfl in config.TAINTMAP:
-                                del config.TAINTMAP[sfl]
-                    for ele in todelete:
-                        del config.SPECIALBITVECTORS[ele]
-                    
- 
-                if retc < 0 and retc != -2:
-                    #print "[*]Error code is %d"%(retc,)
-                    efd.write("%s: %d\n"%(tfl, retc))
-                    efd.flush()
-                    os.fsync(efd)
-                    tmpHash=sha1OfFile(config.CRASHFILE)
-                    if tmpHash not in crashHash:
-                            crashHash.append(tmpHash)
-                            tnow=datetime.now().isoformat().replace(":","-")
-                            nf="%s-%s.%s"%(progname,tnow,gau.splitFilename(fl)[1])
-                            npath=os.path.join("outd/crashInputs",nf)
-                            shutil.copyfile(tfl,npath)
-                            if SPECIALADDED==False:
-                                shutil.copy(tfl,config.SPECIAL)
-                                
-                            config.CRASHIN.add(fl)
-                    if config.STOPONCRASH == True:
-                        #efd.close()
-                        crashhappend=True
-                        break
+              per_gen_fnum +=1
+              tfl=os.path.join(config.INPUTD,fl)
+              iln=os.path.getsize(tfl)
+              args = (config.SUT % tfl).split(' ')
+              progname = os.path.basename(args[0])
+              (bbs,retc)=execute(tfl) #count bb
+              if per_gen_fnum % 10 ==0:
+                  print "[**] Gen: %d. Executed %d of %d.**"%(genran,per_gen_fnum,config.POPSIZE)
+              if config.BBWEIGHT == True: #True by default
+                  fitnes[fl]=gau.fitnesCal2(bbs,fl,iln)
+              else:
+                  fitnes[fl]=gau.fitnesNoWeight(bbs,fl,iln)
+              execs+=1
+              #let us prune the inputs(if at all), whose trace is subset of the new input just got executed.
+              SPECIALADDED= False
+              if config.GOTSPECIAL==True:
+                  SPECIALCHANGED=True
+                  SPECIALADDED= True
+                  todelete.clear()
+                  form_bitvector2(bbs,fl,config.BBFORPRUNE,config.SPECIALBITVECTORS)
+                  shutil.copy(tfl,config.SPECIAL)
+                  config.SPECIALENTRY.append(fl)
+                  for sfl,bitv in config.SPECIALBITVECTORS.iteritems():
+                      if sfl == fl:
+                          continue
+                      if (config.SPECIALBITVECTORS[fl] & bitv) == bitv:
+                          tpath=os.path.join(config.SPECIAL,sfl)
+                          os.remove(tpath)
+                          todelete.add(sfl)
+                          config.SPECIALENTRY.remove(sfl)
+                          if sfl in config.TAINTMAP:
+                              del config.TAINTMAP[sfl]
+                  for ele in todelete:
+                      del config.SPECIALBITVECTORS[ele]
+
+              if retc < 0 and retc != -2:
+                  #print "[*]Error code is %d"%(retc,)
+                  efd.write("%s: %d\n"%(tfl, retc))
+                  efd.flush()
+                  os.fsync(efd)
+                  tmpHash=sha1OfFile(config.CRASHFILE)
+                  if tmpHash not in crashHash:
+                      crashHash.append(tmpHash)
+                      tnow=datetime.now().isoformat().replace(":","-")
+                      nf="%s-%s.%s"%(progname,tnow,gau.splitFilename(fl)[1])
+                      npath=os.path.join("outd/crashInputs",nf)
+                      shutil.copyfile(tfl,npath)
+                      if SPECIALADDED==False:
+                          shutil.copy(tfl,config.SPECIAL)
+                      config.CRASHIN.add(fl)
+                  if config.STOPONCRASH == True:
+                      #efd.close()
+                      crashhappend=True
+                      break
         fitscore=[v for k,v in fitnes.items()]
         maxfit=max(fitscore)
         avefit=sum(fitscore)/len(fitscore)

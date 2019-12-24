@@ -1,0 +1,22 @@
+install:
+git clone https://github.com/LockOne/vuzzer64.git
+scp cheong@verifier8.kaist.ac.kr:/home/cheong/pin-3.7.tar.gz ./
+scp cheong@verifier8.kaist.ac.kr:/home/cheong/EWAH-4.0.tar.gz ./
+#wget https://github.com/lemire/EWAHBoolArray/archive/0.4.0.tar.gz
+
+export PIN_ROOT="$HOME/install/pin-3.7"
+export PIN_HOME=$PIN_ROOT
+export DFT_HOME="$HOME/vuzzer64/libdft64"
+
+sudo:
+echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
+echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
+sudo mount -t tmpfs -o size=1024M tmpfs /home/cheong/vuzzer64/fuzzer-code/vutemp
+
+changed:
+pin-3.7/source/tools/Config/makefile.unix.config:63,301  //include EWAHBoolArray headers
+EWAH-BoolArray/headers/ewahutils.h:30 //remove ASSERT macro
+
+etc:
+ghidra run script
+dos2unix 

@@ -1,4 +1,0 @@
-pin-3.7/source/tools/Config/makefile.unix.config:63,301  //include EWAHBoolArray headers
-EWAH-BoolArray/headers/ewahutils.h:30 //remove ASSERT macro
-ghidra run script
-dos2unix 

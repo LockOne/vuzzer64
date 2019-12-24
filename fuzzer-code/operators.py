@@ -40,23 +40,12 @@ class GAoperator:
   #def random_string(self, size, char_set = ALL_CHARS):
     #return ''.join([self.r.choice(char_set) for n in xrange(size)] 
     def get_cut(self,size,fl):
-        #print "in get_cut\n"
         if len(config.TAINTMAP)>0 and random.randint(0,9)>3:
-            onlyCom=False
-            
             if fl in config.TAINTMAP:
                 tof=config.TAINTMAP[fl][0]
             else:
                 tfl=self.r.choice(config.TAINTMAP.keys())
                 tof=config.TAINTMAP[tfl][0]
-        else:
-            onlyCom=True
-            
-
-        #right=False
-        #while right!=True:
-            #cut_pos = self.r.randint(0, size)
-        if onlyCom==False:
             tset=set(tof)-set(config.MOSTCOMMON)
             if config.RANDOMCOMN ==True and random.randint(0,9)>5:
                 tset=set(tof)
@@ -68,23 +57,16 @@ class GAoperator:
                 else:
                     cut_pos=self.r.randint(0,size)
                     #print "random offset %d"%(cut_pos,)
-            else:
-                right=False
-                while right ==False:
-                    cut_pos = self.r.randint(0, size)
-                    if cut_pos not in config.MOSTCOMMON:
-                        right = True
-                        #print "random offset %d"%(cut_pos,)
+                return cut_pos
 
-                #if cut_pos not in config.MOSTCOMMON and cut_pos in tof:
-                #    right = True
-        else:
-            right=False
-            while right ==False:
-                cut_pos = self.r.randint(0, size)
-                if cut_pos not in config.MOSTCOMMON:
-                    right = True
-                    #print "random offset %d"%(cut_pos,)
+        #right=False
+        #while right!=True:
+        #cut_pos = self.r.randint(0, size)
+        right=False
+        while right ==False:
+            cut_pos = self.r.randint(0, size)
+            if cut_pos not in config.MOSTCOMMON:
+               right = True
         return cut_pos
    
 

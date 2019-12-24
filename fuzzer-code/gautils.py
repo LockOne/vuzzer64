@@ -246,7 +246,7 @@ def createNextGeneration3(fit,gn):
     bestLen=os.path.getsize(bfp)
     fitnames=[k for k,v in sfit]
     # as our selection policy requires that each input that trigerred a new BB must go to the next generation, we need to find a set of BEST BBs and merge it with this set of inputs.
-    best=set(fitnames[:config.BESTP])#.union(set(config.SPECIALENTRY))
+    best=set(fitnames[:config.BESTP])#.union(set(config.SPECIALENTRY)) //40%
     #best.update(config.CRASHIN)
     #print "best",best, len(best)
     if len(best)%2 !=0:
@@ -273,7 +273,7 @@ def createNextGeneration3(fit,gn):
     if config.ERRORBBON==True:
         copyd2d(config.INITIALD,config.INTER)
     while i< limit:
-        cutp=int(random.uniform(0.4,0.8)*len(fitnames))
+        cutp=int(random.uniform(0.4,0.8)*len(fitnames)) # 40% ~ 80%
         #we are going to use crossover s.t. we want to choose best parents frequently, but giving chance to less fit parents also to breed. the above cut gives us an offset to choose parents from. Note that last 10% never get a chance to breed.
         #print "crossover"
         par=random.sample(fitnames[:cutp], 2)
@@ -281,8 +281,8 @@ def createNextGeneration3(fit,gn):
         fp2=os.path.join(config.INPUTD,par[1])
         inpsp=os.listdir(config.INTER)
         
-        sin1='xxyy'
-        sin2='yyzz'
+        sin1= None #using random string as a flag is not proper.
+        sin2= None
         if len(inpsp)>0:
             if random.randint(0,9) >config.SELECTNUM:
                 sin1=random.choice(inpsp)
@@ -294,17 +294,17 @@ def createNextGeneration3(fit,gn):
         np2=os.path.join(config.INPUTD,"new-%d-g%d.%s"%(i+1,gn,ext))
         p1=readFile(fp1)
         p2=readFile(fp2)
-        if (len(p1) > bestLen) or (len(p2) > bestLen):
+        if (len(p1) > bestLen) or (len(p2) > bestLen): #won't going to perform crossover
             #print "no crossover"
             #mch1= ga.mutate(p1)
-            if sin1 != 'xxyy':
+            if sin1 is not None:
                 mch1= ga.mutate(p1,sin1)
                 mch1=taint_based_change(mch1,sin1)
             else:
                 mch1= ga.mutate(p1,par[0])
                 mch1=taint_based_change(mch1,par[0])
             #mch2= ga.mutate(p2)
-            if sin2 !='yyzz':
+            if sin2 is not None:
                 mch2= ga.mutate(p2,sin2)
                 mch2=taint_based_change(mch2,sin2)
             else:
@@ -322,7 +322,7 @@ def createNextGeneration3(fit,gn):
             #now we do mutation on these children, one by one
             if random.uniform(0.1,1.0)>(1.0 - config.PROBMUT):
                 #mch1= ga.mutate(ch1)
-                if sin1 !='xxyy':
+                if sin1 is not None:
                     mch1= ga.mutate(ch1,sin1)
                     mch1=taint_based_change(mch1,sin1)
                 else:
@@ -332,14 +332,14 @@ def createNextGeneration3(fit,gn):
                     die("zero input created")
                 writeFile(np1,mch1)
             else:
-                if sin1 != 'xxyy':
+                if sin1 is not None:
                     ch1=taint_based_change(ch1,sin1)
                 else:
                     ch1=taint_based_change(ch1,par[0])
                 writeFile(np1,ch1)
             if random.uniform(0.1,1.0)>(1.0 - config.PROBMUT):
                 #mch2= ga.mutate(ch2)
-                if sin2 !='yyzz':
+                if sin2 is not None:
                     mch2= ga.mutate(ch2,sin2)
                     mch2=taint_based_change(mch2,sin2)
                 else:
@@ -350,7 +350,7 @@ def createNextGeneration3(fit,gn):
                     die("zero input created")
                 writeFile(np2,mch2)
             else:
-                if sin2 != 'yyzz':
+                if sin2 is not None:
                     ch2=taint_based_change(ch2,sin2)
                 else:
                     ch2=taint_based_change(ch2,par[1])

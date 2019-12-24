@@ -195,6 +195,7 @@ def get_hexStr(inp):
         r=bina.unhexlify('0'+inp[2:])
     else:
         r= bina.unhexlify(inp[2:])
+
     if config.ARCHLIL==True:
         return r[::-1]
     else:
@@ -335,6 +336,7 @@ def read_taint(fpath):
         op1val = 21
         op2val = 22
       if config.ALLCMPOP == True: #False by default
+        '''
         if mat.group(op1start) =='' and mat.group(op2start) !='':
           tempoff=get_non_empty(mat,op2start)#mat.group(9)
           if tempoff ==-1:
@@ -359,6 +361,7 @@ def read_taint(fpath):
 
         else:
           alltaintoff.update(set(hexstr))
+        '''
       else:
         if mat.group(2) == 'imm': # possible?
           tempoff=get_non_empty(mat,op2start)#mat.group(13)
@@ -474,11 +477,11 @@ def get_taint(dirin, is_initial=0):
       config.LEAMAP[fl]=read_lea()          
       #print config.TAINTMAP[fl][1]
       #raw_input("press key..")
-    if config.MOSTCOMFLAG==False:
+    if config.MOSTCOMFLAG==False: #False by default
         #print "computing MOSTCOM calculation..."
         for k1,v1 in config.TAINTMAP.iteritems():
             for off1,vset1 in v1[1].iteritems():
-                tag=True
+                common_tag=True
                 if off1 > config.MAXOFFSET:
                     config.TAINTMAP[k1][0].add(off1)
                     #print "[==] ",k1,off1
@@ -487,16 +490,16 @@ def get_taint(dirin, is_initial=0):
                     if off1 not in v2[1]:
                         config.TAINTMAP[k1][0].add(off1)
                         #print k2,v2[1]
-                        tag=False
+                        common_tag=False
                         break
                     #print "passed..", off1
                     if len(set(vset1) & set(v2[1][off1]))==0:#set(vset1) != set(v2[off1])
                         #print k1, k2, off1, set(vset1), set(v2[1][off1])
                         config.TAINTMAP[k1][0].add(off1)
-                        tag=False
+                        common_tag=False
                         break
                     #print "passed set", vset1
-                if tag==True:
+                if common_tag==True:
                     config.MOSTCOMMON[off1]=list(set(vset1[:]))
                     #print "[++]",config.MOSTCOMMON[off1]
             break # we just want to take one input and check if all the offsets in other inputs have commonality.
@@ -504,7 +507,7 @@ def get_taint(dirin, is_initial=0):
         #print "computing MORECOM calculation..."
         for k1,v1 in config.TAINTMAP.iteritems():
             for off1,vset1 in v1[1].iteritems():
-                tag=True
+                common_tag=True
                 #if off1 > config.MAXOFFSET:
                     #print k1,off1
                 #    continue
@@ -512,14 +515,14 @@ def get_taint(dirin, is_initial=0):
                     if off1 not in v2[1]:
                         config.TAINTMAP[k1][0].add(off1)
                         #print k2,v2[1]
-                        tag=False
+                        common_tag=False
                         break
                     if len(set(vset1) ^ set(v2[1][off1]))>3:#vset1 != v2[1][off1]:
                         #print k2, vset1, v2[1][off1]
                         config.TAINTMAP[k1][0].add(off1)
-                        tag=False
+                        common_tag=False
                         break
-                if tag==True:
+                if common_tag==True:
                     config.MORECOMMON[off1]=list(set(vset1[:]))
                     #print config.MOSTCOMMON[off1]
             break # we just want to take one input and check if all the offsets in other inputs have commonality.
@@ -765,6 +768,16 @@ def main():
     shutil.copytree(config.INITIALD,config.INPUTD)
     # fisrt we get taint of the intial inputs
     get_taint(config.INITIALD,1)
+    
+    '''
+    print "TAINTMAP : \n"
+    for f in config.TAINTMAP:
+      print "{",f,"}->(alltaint(size:",len(config.TAINTMAP[f][0]),"): ",config.TAINTMAP[f][0],","
+      print "bytes_value: (# of bytes : ",len(config.TAINTMAP[f][1]),
+      for b in config.TAINTMAP[f][1]:
+        print b,"-> ",len(config.TAINTMAP[f][1][b])," values, ",
+      print ""
+    '''
     #print "MOst common offsets and values:", config.MOSTCOMMON
     #print "Base address: %s"%config.LIBOFFSETS[0]
     #raw_input("Press enter to continue..")    

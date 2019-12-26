@@ -111,7 +111,7 @@ def taint_based_change(ch,pr):
                 continue
             if random.randint(0,9)>config.MOSTCOMNLAST:
                 try:
-                    tval=random.choice(config.TAINTMAP[pr][1][k])# choose arandom value 
+                    tval=random.choice(config.TAINTMAP[pr][1][k])# choose a random value 
                     chlist[k]=tval
                     chlist=list(''.join(chlist))
                 except IndexError:
@@ -270,7 +270,7 @@ def createNextGeneration3(fit,gn):
     crashnum=0 #this variable is used to count new inputs generated with crashing inputs. 
     emptyDir(config.INTER)
     copyd2d(config.SPECIAL,config.INTER)
-    if config.ERRORBBON==True:
+    if config.ERRORBBON==True: #True by default
         copyd2d(config.INITIALD,config.INTER)
     while i< limit:
         cutp=int(random.uniform(0.4,0.8)*len(fitnames)) # 40% ~ 80%
@@ -283,6 +283,7 @@ def createNextGeneration3(fit,gn):
         
         sin1= None #using random string as a flag is not proper.
         sin2= None
+        #choose from INTER with some probability.
         if len(inpsp)>0:
             if random.randint(0,9) >config.SELECTNUM:
                 sin1=random.choice(inpsp)
@@ -428,61 +429,48 @@ def fitnesCal2(bbdict, cinput,ilen):
     calculates fitness of each input based on its execution trace.
     The difference from "fitnesCal()" is that it again multiplies fitnes score by the number of BB executed.
     '''
-    
     config.GOTSPECIAL=False
     score=0.0
     bbNum=0
-    tempset=config.ERRORBBALL.union(config.TEMPERRORBB)
+    errorset=config.ERRORBBALL.union(config.TEMPERRORBB)
     # calculate negative weight for error BBs
-    numEBB=len(set(bbdict)&tempset)
+    numEBB=len(set(bbdict)& errorset)
     if numEBB>0:
-        ew=-len(bbdict)*config.ERRORBBPERCENTAGE/numEBB
+        weight_error=-len(bbdict)*config.ERRORBBPERCENTAGE/numEBB
     
     
-    tset=set(bbdict)-tempset # we make sure that newly discovered BBs are not related to error BB.
+    tset=set(bbdict)-errorset # we make sure that newly discovered BBs are not related to error BB.
     config.cPERGENBB.update(tset)
-    if not tset <= config.SEENBB:# and not tset <=tempset:
-        diffb=tset-config.SEENBB  #new coverage!
+    #check new coverage
+    if not tset <= config.SEENBB:
+        diffb=tset-config.SEENBB 
         #let input pruning, lets set the flag is this input has found a new BB
         config.GOTSPECIAL=True
         config.SEENBB.update(diffb)
+
     for bbadr in bbdict: 
-        #config.cPERGENBB.add(bbadr)#added for code-coverage
-        #if bbadr in tempset:#config.ERRORBBALL:
-        #    continue
-        #bbNum +=1
         bbfr=bbdict[bbadr]
         if bbfr > config.BBMAXFREQ:
             bbfr = config.BBMAXFREQ
         lgfr=int(math.log(bbfr+1,2)) #1 is added to avoid having log(1)=0 case
-        #if bbadr not in config.SEENBB:
-        #    config.SEENBB.add(bbadr)
-        #    config.SPECIALENTRY.append(cinput)
-        if bbadr in tempset:
-            #print"[0x%x] Error BB hit (%f ) !"%(bbadr,ew)
-            score=score+(lgfr*ew)
+        if bbadr in errorset:
+            score=score+(lgfr*weight_error)
         elif bbadr in config.ALLBB:
-            #print"[0x%x] BB hit (%d - %f) !"%(bbadr,bbfr,config.ALLBB[bbadr])
             score=score+(lgfr*config.ALLBB[bbadr])
             bbNum +=1
         else:
-            #print"[0x%x] BB missed (%d) !"%(bbadr,bbfr)
             score = score+lgfr
             bbNum +=1
-    del tempset
-    #print "BBNum", bbNum
-    #return round((score*bbNum)/(ilen*1.0),2)
-    #return (score*bbNum)/totalFreq
+    del errorset
     if ilen > config.MAXINPUTLEN:
         return (score*bbNum)/int(math.log(ilen+1,2))
     else:
         return score*bbNum
  
-def fitnesNoWeight(bbdict, cinput,ilen):
+def fitnesNoWeight(bbdict, cinput,ilen): #not going to use.
     '''
     calculates fitness of each input based on its execution trace. The difference from "fitnesCal()" is that it again multiplies fitnes score by the number of BB executed.
     '''
-    
     score=0.0
     bbNum=0
     tempset=config.ERRORBBALL.union(config.TEMPERRORBB)

@@ -778,9 +778,6 @@ def main():
         print b,"-> ",len(config.TAINTMAP[f][1][b])," values, ",
       print ""
     '''
-    #print "MOst common offsets and values:", config.MOSTCOMMON
-    #print "Base address: %s"%config.LIBOFFSETS[0]
-    #raw_input("Press enter to continue..")    
     config.MOSTCOMFLAG=True
     crashhappend=False
     filest = os.listdir(config.INPUTD)
@@ -897,7 +894,6 @@ def main():
         print "[*] Done with all input in Gen, starting SPECIAL. \n"
         appcov,allcov=gau.calculateCov()
         tnow=datetime.now().isoformat().replace(":","-")
-        #stat.write("\t%d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %s\n"%(genran,min(fitscore),maxfit,avefit,mnlen,mxlen,avlen,len(config.cPERGENBB),appcov,allcov,tnow))
         stat.write("\t%d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %s\n"%(genran,min(fitscore),maxfit,avefit,mnlen,mxlen,avlen,len(config.SEENBB),appcov,allcov,tnow))
         stat.flush()
         os.fsync(stat.fileno())
@@ -905,12 +901,9 @@ def main():
         if crashhappend == True:
             break
         #lets find out some of the error handling BBs
-        #if genran >20 and genran%5==0:
-         #   run_error_bb(pt)
         genran += 1
         #this part is to get initial fitness that will be used to determine if fuzzer got stuck.
         lastfit=currentfit
-        #currentfit=maxfit
         currentfit=len(config.SEENBB)
         if currentfit==lastfit:#lastfit-config.FITMARGIN < currentfit < lastfit+config.FITMARGIN:
             noprogress +=1
@@ -923,20 +916,19 @@ def main():
         if (genran >= config.GENNUM) and (config.STOPOVERGENNUM == True):
             break
         if len(os.listdir(config.SPECIAL))>0 and SPECIALCHANGED == True:
-            if len(os.listdir(config.SPECIAL))<config.NEWTAINTFILES:
+            if len(os.listdir(config.SPECIAL))<config.NEWTAINTFILES: #The # of new generated special TC is not big
                 get_taint(config.SPECIAL)
             else:
+                #take only 100 files in SPEICAL, perform taint analysis on it.
                 try:
                     os.mkdir(config.TAINTTMP)
                 except OSError:
                     gau.emptyDir(config.TAINTTMP)
                 if conditional_copy_files(config.SPECIAL,config.TAINTTMP,config.NEWTAINTFILES) == 0:
                     get_taint(config.TAINTTMP)
-            #print "MOst common offsets and values:", config.MOSTCOMMON
-            #gg=raw_input("press any key to continue..")
         print "[*] Going for new generation creation.\n" 
         gau.createNextGeneration3(fitnes,genran)
-        #raw_input("press any key...")
+        print "current TAINTMAP size : ",len(config.TAINTMAP),
 
     efd.close()
     stat.close()

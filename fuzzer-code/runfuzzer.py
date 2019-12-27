@@ -20,6 +20,7 @@ import binascii as bina
 import copy
 import re
 import hashlib
+import signal
 
 
 import gautils as gau
@@ -31,6 +32,13 @@ import argparse
 #config.MOSTCOMFLAG=False # this is set once we compute taint for initial inputs.
 libfd=open("image.offset","r+b")
 libfd_mm=mmap.mmap(libfd.fileno(),0)
+
+def signal_handler(sig, frame):
+    print('[*] User terminated the process...')    
+    if config.START_TIME != 0:
+      print "[**] Totol time %f sec."%(time.clock() -config.START_TIME,)
+    print "[**] Fuzzing done. Check %s to see if there were crashes.."%(config.ERRORS,)
+    exit(0)
 
 def get_min_file(src):
     files=os.listdir(src)
@@ -285,8 +293,37 @@ def read_lea():
             offsets.add(toff[0])
     return offsets.copy()
 
+def read_func():
+    if ((not os.path.isfile("func.out")) or os.path.getsize("func.out") == 0):
+      print "[*] Warning! empty func.out file!"
+      return
+    funcFD = open("func.out", "r")
+    funclist = []
+    for ln in funcFD:
+      funclist.append(ln.strip())
+    for fn1 in funclist:
+      for fn2 in funclist:
+        if fn1 in config.FUNC_REL:
+          if fn2 in config.FUNC_REL[fn1]:
+            config.FUNC_REL[fn1][fn2] += 1
+          else:
+            config.FUNC_REL[fn1][fn2] = 1
+        else:
+          config.FUNC_REL[fn1] = {fn2 : 1}
 
-
+        if fn2 in config.FUNC_REL:
+          if fn1 in config.FUNC_REL[fn2]:
+            config.FUNC_REL[fn2][fn1] += 1
+          else:
+            config.FUNC_REL[fn2][fn1] = 1
+        else: 
+          config.FUNC_REL[fn2] = {fn1 : 1}
+        if config.FUNC_REL[fn1][fn2] != config.FUNC_REL[fn2][fn1]:
+          print "Diff !!! fn1:",fn1,", fn2:",fn2
+          funcFD.close()
+          exit()
+        
+    funcFD.close()
 
 def read_taint(fpath):
     ''' This function read cmp.out file and parses it to extract offsets and coresponding values and returns a tuple(alltaint, taintoff).
@@ -475,8 +512,9 @@ def get_taint(dirin, is_initial=0):
         gau.die("pintool terminated with error 255 on input %s"%(pfl,))
       config.TAINTMAP[fl]=read_taint(pfl)
       config.LEAMAP[fl]=read_lea()          
-      #print config.TAINTMAP[fl][1]
-      #raw_input("press key..")
+      read_func()
+
+
     if config.MOSTCOMFLAG==False: #False by default
         #print "computing MOSTCOM calculation..."
         for k1,v1 in config.TAINTMAP.iteritems():
@@ -598,6 +636,24 @@ def dry_run():
     del badbb
     #del tempgood
     return len(config.GOODBB),len(config.ERRORBBALL)
+
+
+def print_func_rel():
+    ff = open("funcrel.csv", "w")
+    fl = config.FUNC_REL.keys()
+    ff.write(",")
+    for f1 in fl:
+      ff.write(f1+",")
+    ff.write("\n")
+    for f1 in fl:
+      ff.write(f1 +",")
+      for f2 in fl:
+        if f2 not in config.FUNC_REL[f1]:
+          ff.write("0,")
+        else:
+          ff.write(str(config.FUNC_REL[f1][f2]) + "," )
+      ff.write("\n")
+    ff.close()
     
 def run_error_bb(pt):
     print "[*] Starting run_error_bb." 
@@ -724,6 +780,7 @@ def main():
     config.LIBOFFSETS[0]=lst[1][:]
     imgOffFd.close()
     #############################################################################
+
  
     ###### open names pickle files
     gau.prepareBBOffsets()
@@ -758,7 +815,7 @@ def main():
     stat.write("Genaration\t MINfit\t MAXfit\t AVGfit MINlen\t Maxlen\t AVGlen\t #BB\t AppCov\t AllCov\n")
     stat.flush()
     os.fsync(stat.fileno())
-    starttime=time.clock()
+    config.START_TIME=time.clock()
     allnodes = set()
     alledges = set()
     try:
@@ -768,7 +825,6 @@ def main():
     shutil.copytree(config.INITIALD,config.INPUTD)
     # fisrt we get taint of the intial inputs
     get_taint(config.INITIALD,1)
-    
     '''
     print "TAINTMAP : \n"
     for f in config.TAINTMAP:
@@ -918,6 +974,7 @@ def main():
         if len(os.listdir(config.SPECIAL))>0 and SPECIALCHANGED == True:
             if len(os.listdir(config.SPECIAL))<config.NEWTAINTFILES: #The # of new generated special TC is not big
                 get_taint(config.SPECIAL)
+                print_func_rel()
             else:
                 #take only 100 files in SPEICAL, perform taint analysis on it.
                 try:
@@ -936,17 +993,16 @@ def main():
     libfd.close()
     endtime=time.clock()
     
-    print "[**] Totol time %f sec."%(endtime-starttime,)
+    print "[**] Totol time %f sec."%(endtime-config.START_TIME,)
     print "[**] Fuzzing done. Check %s to see if there were crashes.."%(config.ERRORS,)
     
 
 if __name__ == '__main__':
-    
-
+    signal.signal(signal.SIGINT, signal_handler)
+    main()
+    '''
     fuzzthread = threading.Thread(target = main)
-
     fuzzthread.start()
-
     if config.FLASK:
-
         socketio.run(app, host="0.0.0.0", port=5000)
+    '''

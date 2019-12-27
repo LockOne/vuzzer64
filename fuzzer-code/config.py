@@ -226,3 +226,5 @@ FLASK=False
 FUNC_REL = dict()
 
 START_TIME = 0
+
+TIMEOUT = 24 * 60 * 60

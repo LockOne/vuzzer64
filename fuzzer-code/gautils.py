@@ -7,6 +7,8 @@ import math
 import random
 import shutil
 
+from runfuzzer import check_timeout #move to util.py?
+
 def die(msg) :
     print msg
     raise SystemExit(1)
@@ -24,7 +26,6 @@ def copyd2d(src,dst):
     for fl in os.listdir(src):
         pfl=os.path.join(src,fl)
         shutil.copy(pfl,dst)
-
 
 def readFile(fn) :
     f = open(fn, 'rb')
@@ -273,6 +274,7 @@ def createNextGeneration3(fit,gn):
     if config.ERRORBBON==True: #True by default
         copyd2d(config.INITIALD,config.INTER)
     while i< limit:
+        check_timeout()
         cutp=int(random.uniform(0.4,0.8)*len(fitnames)) # 40% ~ 80%
         #we are going to use crossover s.t. we want to choose best parents frequently, but giving chance to less fit parents also to breed. the above cut gives us an offset to choose parents from. Note that last 10% never get a chance to breed.
         #print "crossover"

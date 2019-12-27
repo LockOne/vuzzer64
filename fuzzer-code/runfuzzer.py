@@ -36,7 +36,7 @@ libfd_mm=mmap.mmap(libfd.fileno(),0)
 def signal_handler(sig, frame):
     print('[*] User terminated the process...')    
     if config.START_TIME != 0:
-      print "[**] Totol time %f sec."%(time.clock() -config.START_TIME,)
+      print "[**] Totol time %f sec."%(time.time() -config.START_TIME,)
     print "[**] Fuzzing done. Check %s to see if there were crashes.."%(config.ERRORS,)
     exit(0)
 
@@ -318,12 +318,17 @@ def read_func():
             config.FUNC_REL[fn2][fn1] = 1
         else: 
           config.FUNC_REL[fn2] = {fn1 : 1}
-        if config.FUNC_REL[fn1][fn2] != config.FUNC_REL[fn2][fn1]:
-          print "Diff !!! fn1:",fn1,", fn2:",fn2
-          funcFD.close()
-          exit()
-        
     funcFD.close()
+
+def check_timeout():
+    if (time.time() - config.START_TIME) > config.TIMEOUT:
+      print "[**] Timeout reached"
+      if config.START_TIME != 0:
+        print "[**] Totol time %f sec."%(time.time() -config.START_TIME,)
+      print "[**] Fuzzing done. Check %s to see if there were crashes.."%(config.ERRORS,)
+      exit(0)
+
+
 
 def read_taint(fpath):
     ''' This function read cmp.out file and parses it to extract offsets and coresponding values and returns a tuple(alltaint, taintoff).
@@ -498,6 +503,7 @@ def get_taint(dirin, is_initial=0):
     #taintmap=dict()#this is a dictionary to keep taintmap of each input file. Key is the input file name and value is a tuple returned by read_taint, wherein 1st element is a set of all offsets used in cmp and 2nd elment is a dictionary with key a offset and value is a set of values at that offsetthat were found in CMP instructions.
     #mostcommon=dict()# this dictionary keeps offsets which are common across all the inputs with same value set. 
     for fl in files:
+      check_timeout()
       if fl in config.TAINTMAP:
         continue
       pfl=os.path.abspath(os.path.join(dirin,fl))
@@ -636,6 +642,7 @@ def dry_run():
     del badbb
     #del tempgood
     return len(config.GOODBB),len(config.ERRORBBALL)
+
 
 
 def print_func_rel():
@@ -815,7 +822,7 @@ def main():
     stat.write("Genaration\t MINfit\t MAXfit\t AVGfit MINlen\t Maxlen\t AVGlen\t #BB\t AppCov\t AllCov\n")
     stat.flush()
     os.fsync(stat.fileno())
-    config.START_TIME=time.clock()
+    config.START_TIME=time.time()
     allnodes = set()
     alledges = set()
     try:
@@ -825,6 +832,7 @@ def main():
     shutil.copytree(config.INITIALD,config.INPUTD)
     # fisrt we get taint of the intial inputs
     get_taint(config.INITIALD,1)
+    check_timeout()
     '''
     print "TAINTMAP : \n"
     for f in config.TAINTMAP:
@@ -854,11 +862,12 @@ def main():
     config.SEENBB.clear()#initialize set of BB seen so far, which is 0
     del config.SPECIALENTRY[:]
     todelete=set()#temp set to keep file names that will be deleted in the special folder
+    check_timeout()
     while True:
         #print "[**] Generation %d\n***********"%(genran,)
-        
         del config.TEMPTRACE[:]
         del config.BBSEENVECTOR[:]
+        check_timeout()
         SPECIALCHANGED= False # this is set when a config.SPECIAL gets at least one new input per generation. 
         config.TMPBBINFO.clear()
         config.TMPBBINFO.update(config.PREVBBINFO)
@@ -874,7 +883,7 @@ def main():
                 keepslide=max(keepslide,config.GENNUM/100)
                 keepfilenum=keepfilenum/2
         
-            if 0< genran < config.GENNUM/5 and genran%keepslide == 0:
+            if 0 < genran < config.GENNUM/5 and genran%keepslide == 0:
                 copy_files(config.INPUTD,config.KEEPD,keepfilenum)
                 
         #lets find out some of the error handling BBs
@@ -889,6 +898,7 @@ def main():
         per_gen_fnum=0
         #count BB and calculate fitness function for each TC.
         for fl in files:
+              check_timeout()
               per_gen_fnum +=1
               tfl=os.path.join(config.INPUTD,fl)
               iln=os.path.getsize(tfl)
@@ -991,7 +1001,7 @@ def main():
     stat.close()
     libfd_mm.close()
     libfd.close()
-    endtime=time.clock()
+    endtime=time.time()
     
     print "[**] Totol time %f sec."%(endtime-config.START_TIME,)
     print "[**] Fuzzing done. Check %s to see if there were crashes.."%(config.ERRORS,)

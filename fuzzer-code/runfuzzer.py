@@ -302,7 +302,7 @@ def read_taint(fpath):
     fsize=os.path.getsize(fpath)
     offlimit=0
     #check if taint was generated, else exit
-    if (os.path.getsize("cmp.out") ==0):
+    if ((not os.path.isfile("cmp.out")) or os.path.getsize("cmp.out") ==0):
         print "[*] Warning! empty cmp.out file!"
         return (alltaintoff, taintOff)
         #gau.die("Empty cmp.out file! Perhaps taint analysis did not run...")

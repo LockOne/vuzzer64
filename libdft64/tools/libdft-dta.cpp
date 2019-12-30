@@ -60,6 +60,10 @@ static KNOB<std::string> LeaRawKnob(KNOB_MODE_WRITEONCE, "pintool", "leao",
         "lea.out", "The output file for lea"
 );
 
+static KNOB<std::string> FuncRawKnob(KNOB_MODE_WRITEONCE, "pintool", "funco",
+        "func.out", "The output file for lea"
+);
+
 static KNOB<std::string> SizeKnob(KNOB_MODE_WRITEONCE, "pintool", "maxoff",
         "4", "Filename for which we need to track taint"
 );
@@ -75,6 +79,7 @@ static KNOB<UINT32> KnobTimeout(KNOB_MODE_WRITEONCE, "pintool", "x",
 /* threads context */
 extern std::ofstream out;
 extern std::ofstream out_lea;
+extern std::ofstream out_func;
 extern thread_ctx_t *threads_ctx;
 extern std::string filename;
 extern int limit_offset;
@@ -121,6 +126,8 @@ main(int argc, char **argv, char* envp[])
 	KnobImgDesc.Value();
 	out.open(CmpRawKnob.Value().c_str(), std::ios::binary | std::ios::trunc | std::ios::out );
 	out_lea.open(LeaRawKnob.Value().c_str(), std::ios::binary | std::ios::trunc | std::ios::out );
+  out_func.open(FuncRawKnob.Value().c_str(), std::ios::binary | std::ios::trunc | std::ios::out );
+  
 	filename = FileKnob.Value();
 	limit_offset = atoi(SizeKnob.Value().c_str());
     PIN_THREAD_UID threadUid;

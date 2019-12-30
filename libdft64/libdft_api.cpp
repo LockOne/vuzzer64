@@ -54,6 +54,9 @@
 /* Cmp.out file offset */
 std::ofstream out;
 std::ofstream out_lea;
+std::ofstream out_func;
+
+string * cur_func_name;
 
 std::ofstream reward_taint;
 
@@ -799,6 +802,18 @@ void forkAfter(THREADID tid, const CONTEXT *ctxt, VOID *v)
 	fMergeLog = fopen(loadpath.c_str(),"w");
 }
 */
+
+/*
+typedef struct FuncCount{
+
+  string _name;
+  UINT64 _count;
+  struct FuncCount * _next;
+} FUNC_COUNT;
+
+FUNC_COUNT * func_list = NULL;
+
+*/
 void finish(INT32 code, VOID *v)
 {
 	//std::string loadpath;
@@ -811,6 +826,14 @@ void finish(INT32 code, VOID *v)
 	out.close();
 	out_lea.flush();
 	out_lea.close();
+/*
+  for (FUNC_COUNT * fc = func_list; fc; fc = fc->_next){ 
+    if (fc->_count > 0) {
+      out_func << fc->_name << "\n";
+    }
+  }*/
+  out_func.flush();
+  out_func.close();
 	reward_taint.flush();
 	reward_taint.close();
 	// End
@@ -822,7 +845,35 @@ void finish(INT32 code, VOID *v)
 //	PIN_MutexFini(&MergeLock);
 	//fclose(fMergeLog);
 }
+/*
+void docount(UINT64 * counter){ (*counter)++; }
 
+*/
+
+void write_func(string * fname) { out_func << *fname << "\n"; }
+
+void Routine(RTN rtn, void *v)
+{
+//   FUNC_COUNT * fc = new FUNC_COUNT;
+//   fc->_name =  RTN_Name(rtn);
+//   fc->_count = 0;
+//   fc->_next = func_list;
+//   func_list = fc;
+   //string func_name = RTN_Name(rtn);
+   RTN_Open(rtn);
+   
+   //RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)docount, IARG_PTR, &(fc->_count), IARG_END);
+   RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)write_func, IARG_PTR, &(RTN_Name(rtn)), IARG_END);
+  
+   /*
+   for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins))
+   {
+     INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)change_func, IARG_PTR, &func_name, IARG_END);
+     //INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)docount, IARG_PTR, &(fc->_count), IARG_END);
+   }
+   */
+   RTN_Close(rtn);
+}
 
 /*
  * initialization of the core tagging engine;
@@ -883,6 +934,9 @@ libdft_init(int argc, char **argv)
 
 	/* initialize the ins descriptors */
 	(void)memset(ins_desc, 0, sizeof(ins_desc));
+
+  /* get function */
+  RTN_AddInstrumentFunction(Routine, NULL);
 
 	//img_map = new img_map_t();
 	/* Find the executable entry */

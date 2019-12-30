@@ -32,7 +32,6 @@ extern int limit_offset;
 extern std::map<ADDRINT, bool> to_store;
 extern std::map<pair<int,int>, int> file_offsets;
 
-
 #define RTAG(tid) threads_ctx[tid].vcpu.gpr_file
 
 #define R8TAG(tid, RIDX) \
@@ -402,11 +401,11 @@ void print_log(){
         }
         //LOG("IN PRINT LOG\n");
         for(size_t i=0;i<21;i++){
-                out << output[i];
-                out << " ";
+                out << output[i] << " ";
+                out_func << output[i] << " ";
         }
-        out << std::endl;
-        out << flush;
+        out << std::endl << flush;
+        out_func << std::endl << flush;
 }
 /* Printing Log of LEA */
 vector<string> output_lea(10,"{}");
@@ -422,11 +421,11 @@ void print_lea_log(){
         }
         //LOG("IN PRINT LOG\n");
         for(size_t i=0;i<10;i++){
-                out_lea << output_lea[i];
-                out_lea << " ";
+                out_lea << output_lea[i] << " ";
+                out_func << output_lea[i] << " ";
         }
-        out_lea << std::endl;
-        out_lea << flush;
+        out_lea << std::endl << flush ;
+        out_func << std::endl << flush ;
 }
 
 

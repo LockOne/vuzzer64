@@ -131,8 +131,10 @@
 /* Cmp.out File */
 extern std::ofstream out;
 extern std::ofstream out_lea;
+extern std::ofstream out_func;
 extern std::ofstream reward_taint;
 
+extern string * cur_func_name;
 
 extern int limit_offset;
 extern bool mmap_type;

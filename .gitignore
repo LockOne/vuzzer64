@@ -41,7 +41,7 @@ libdft64/tools/junk.*
 *.sql
 *.sqlite
 *.out
-
+*.csv
 
 # Swap files and backup files #
 ###############################
@@ -52,3 +52,4 @@ libdft64/tools/junk.*
 
 fuzzer-code/env
 fuzzer-code/vutemp
+

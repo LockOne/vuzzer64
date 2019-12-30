@@ -321,7 +321,7 @@ def read_func():
     funcFD.close()
 
 def check_timeout():
-    if (time.time() - config.START_TIME) > config.TIMEOUT:
+    if (time.time() - config.START_TIME) > config.TOTAL_TIMEOUT:
       print "[**] Timeout reached"
       if config.START_TIME != 0:
         print "[**] Totol time %f sec."%(time.time() -config.START_TIME,)

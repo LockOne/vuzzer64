@@ -2,6 +2,7 @@ import config
 import os
 import operators
 from operator import itemgetter
+from run_fuzzer import check_timeout
 import pickle
 import math
 import random
@@ -273,6 +274,7 @@ def createNextGeneration3(fit,gn):
     if config.ERRORBBON==True:
         copyd2d(config.INITIALD,config.INTER)
     while i< limit:
+        check_timeout()
         cutp=int(random.uniform(0.4,0.8)*len(fitnames))
         #we are going to use crossover s.t. we want to choose best parents frequently, but giving chance to less fit parents also to breed. the above cut gives us an offset to choose parents from. Note that last 10% never get a chance to breed.
         #print "crossover"

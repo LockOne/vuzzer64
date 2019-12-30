@@ -222,3 +222,6 @@ MAXINPUTLEN=50000 # this is the limit (50kb) on length of the input. After that 
 #pintool cmd: ../../../pin -tool_exit_timeout 1 -t obj-intel64/bbcounts.so -x 20 -l libjpeg -- /usr/bin/eog esu.png
 
 FLASK=False
+
+TOTAL_TIMEOUT = 24 * 60 * 60
+START_TIME = 0

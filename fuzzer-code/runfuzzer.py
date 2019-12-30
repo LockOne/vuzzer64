@@ -303,7 +303,9 @@ def read_taint(fpath):
     offlimit=0
     #check if taint was generated, else exit
     if (os.path.getsize("cmp.out") ==0):
-        gau.die("Empty cmp.out file! Perhaps taint analysis did not run...")
+        print "[*] Warning! empty cmp.out file!"
+        return (alltaintoff, taintOff)
+        #gau.die("Empty cmp.out file! Perhaps taint analysis did not run...")
     cmpFD=open("cmp.out","r")
     # each line of the cmp.out has the following format:
     #32 reg imm 0xb640fb9d {155} {155} {155} {155} {} {} {} {} 0xc0 0xff

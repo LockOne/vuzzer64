@@ -2,7 +2,7 @@ import config
 import os
 import operators
 from operator import itemgetter
-from run_fuzzer import check_timeout
+from runfuzzer import check_timeout
 import pickle
 import math
 import random

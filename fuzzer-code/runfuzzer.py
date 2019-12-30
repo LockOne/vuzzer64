@@ -734,6 +734,8 @@ def main():
     config.LIBOFFSETS[0]=lst[1][:]
     imgOffFd.close()
     #############################################################################
+    #it does not automatically read correctly...
+    config.LIBOFFSETS[0] = "0x400000"
  
     ###### open names pickle files
     gau.prepareBBOffsets()

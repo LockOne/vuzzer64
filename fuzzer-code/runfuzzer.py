@@ -266,6 +266,10 @@ def get_non_empty(mat, num):
 def read_lea():
     '''
     we also read lea.out file to know offsets that were used in LEA instructions. There offsets are good candidates to fuzz with extreme values, like \xffffffff, \x80000000.'''
+    if ((not os.path.isfile("lea.out")) or os.path.getsize("lea.out") ==0):
+        print "[*] Warning! empty lea.out file!"
+        return set()
+
     leaFD=open("lea.out","r")
     offsets=set() # set to keep all the offsets that are used in LEA instructions.
     pat=re.compile(r"(\d+) (\w+) \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\}",re.I)

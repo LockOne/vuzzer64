@@ -398,10 +398,10 @@ def prepareBBOffsets():
         tempFull.update(tdata[0])# set of full strings from the binary
         tempByte.update(tdata[1])# set of individual bytes from the binary
     if config.NOFFBYTES == True:
-	tempFull.discard('\xFF\xFF\xFF\xFF')
-	tempFull.discard('\xff\xff\xff\xff')
-	tempFull.discard('\x00\xFF\xFF\xFF\xFF')
-	tempFull.discard('\x00\xff\xff\xff\xff')
+      tempFull.discard('\xFF\xFF\xFF\xFF')
+      tempFull.discard('\xff\xff\xff\xff')
+      tempFull.discard('\x00\xFF\xFF\xFF\xFF')
+      tempFull.discard('\x00\xff\xff\xff\xff')
     config.ALLSTRINGS.append(tempFull.copy())
     config.ALLSTRINGS.append(tempByte.copy())
     

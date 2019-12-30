@@ -57,6 +57,7 @@ std::ofstream out_lea;
 std::ofstream out_func;
 
 string * cur_func_name;
+char func_flag;
 
 std::ofstream reward_taint;
 
@@ -803,7 +804,6 @@ void forkAfter(THREADID tid, const CONTEXT *ctxt, VOID *v)
 }
 */
 
-/*
 typedef struct FuncCount{
 
   string _name;
@@ -813,7 +813,6 @@ typedef struct FuncCount{
 
 FUNC_COUNT * func_list = NULL;
 
-*/
 void finish(INT32 code, VOID *v)
 {
 	//std::string loadpath;
@@ -826,12 +825,9 @@ void finish(INT32 code, VOID *v)
 	out.close();
 	out_lea.flush();
 	out_lea.close();
-/*
-  for (FUNC_COUNT * fc = func_list; fc; fc = fc->_next){ 
-    if (fc->_count > 0) {
-      out_func << fc->_name << "\n";
-    }
-  }*/
+  for (FUNC_COUNT * fc = func_list; fc; fc = fc->_next){
+    if (fc-> _count > 0) { out_func << fc->_name << std::endl;}
+  }
   out_func.flush();
   out_func.close();
 	reward_taint.flush();
@@ -845,31 +841,27 @@ void finish(INT32 code, VOID *v)
 //	PIN_MutexFini(&MergeLock);
 	//fclose(fMergeLog);
 }
-/*
-void docount(UINT64 * counter){ (*counter)++; }
 
-*/
+//void write_func(string * fname) { out_func << *fname << "\n";cur_func_name = fname; func_flag = 1;}
+//void change_func(string * fname) { cur_func_name = fname; func_flag = 1;}
 
-void write_func(string * fname) { out_func << *fname << "\n"; }
+void docount(UINT64 * counter, string * fname) { (*counter)++; cur_func_name = fname; func_flag = 1;}
 
 void Routine(RTN rtn, void *v)
 {
-//   FUNC_COUNT * fc = new FUNC_COUNT;
-//   fc->_name =  RTN_Name(rtn);
-//   fc->_count = 0;
-//   fc->_next = func_list;
-//   func_list = fc;
-   //string func_name = RTN_Name(rtn);
+   FUNC_COUNT * fc = new FUNC_COUNT;
+   fc -> _name = RTN_Name(rtn);
+   fc -> _count = 0;
+   fc -> _next = func_list;
+   func_list = fc;
+
    RTN_Open(rtn);
-   
-   //RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)docount, IARG_PTR, &(fc->_count), IARG_END);
-   RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)write_func, IARG_PTR, &(RTN_Name(rtn)), IARG_END);
-  
+   //RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)change_func, IARG_PTR, &(RTN_Name(rtn)), IARG_END);
+   RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR) docount, IARG_PTR, &(fc->_count), IARG_PTR, &(fc->_name), IARG_END);
    /*
    for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins))
    {
      INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)change_func, IARG_PTR, &func_name, IARG_END);
-     //INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)docount, IARG_PTR, &(fc->_count), IARG_END);
    }
    */
    RTN_Close(rtn);

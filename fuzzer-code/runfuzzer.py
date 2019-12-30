@@ -342,15 +342,16 @@ def read_taint(fpath):
     fsize=os.path.getsize(fpath)
     offlimit=0
     #check if taint was generated, else exit
-    if ((not os.path.isfile("cmp.out")) or os.path.getsize("cmp.out") ==0):
+    if ((not os.path.isfile("func.out")) or os.path.getsize("func.out") ==0):
       print "[*] Warning! empty cmp.out file!"
       return (alltaintoff, taintOff)
       #gau.die("Empty cmp.out file! Perhaps taint analysis did not run...")
-    cmpFD=open("cmp.out","r")
+    cmpFD=open("func.out","r")
     # each line of the cmp.out has the following format:
     #32 reg imm 0xb640fb9d {155} {155} {155} {155} {} {} {} {} 0xc0 0xff
     #g1 g2 g3     g4        g5    g6    g7    g8  g9 g10 g11 g12 g13 g14
     # we need a regexp to parse this string.
+    cur_func = ""
     if config.BIT64 == False:
       pat=re.compile(r"(\d+) ([a-z]+) ([a-z]+) (\w+) \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} (\w+) (\w+)",re.I)
     else:
@@ -518,7 +519,7 @@ def get_taint(dirin, is_initial=0):
         gau.die("pintool terminated with error 255 on input %s"%(pfl,))
       config.TAINTMAP[fl]=read_taint(pfl)
       config.LEAMAP[fl]=read_lea()          
-      read_func()
+      #read_func()
 
 
     if config.MOSTCOMFLAG==False: #False by default

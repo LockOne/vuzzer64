@@ -167,7 +167,7 @@ PROBCROSS=0.3
 PROBMUT=0.9#0.8
 
 # set the probability of choosing MOSTCOMMON last value for a offset. Larger the value, more probability of chossing last value (default should be 8)
-MOSTCOMNLAST= 6 #For LAva-M dataset, set this value to <=4
+MOSTCOMNLAST= 4 #For LAva-M dataset, set this value to <=4
 RANDOMCOMN= True # this is to skip setting most common values for a offset sometimes. For LAVA-M, set this value to True.
 
 # stoping condition "if found a crash, stop"
@@ -223,5 +223,5 @@ MAXINPUTLEN=50000 # this is the limit (50kb) on length of the input. After that 
 
 FLASK=False
 
-TOTAL_TIMEOUT = 24 * 60 * 60
+TOTAL_TIMEOUT = 12 * 60 * 60
 START_TIME = 0

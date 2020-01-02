@@ -1,5 +1,5 @@
 #!/bin/sh
-#$1 : "SUT %s", $2 : TC file name (%s), $3 : a number?
+#$1 : "SUT %s", $2 : TC file name (%s), $3 : timeout
 
 cwd=$PWD
 cd ../libdft64/tools

@@ -91,6 +91,7 @@ def taint_based_change(ch,pr):
     #if pr not in config.TAINTMAP:
      #   return ch
     extVal=['\xFF\xFF\xFF\xFF','\xFE\xFF\xFF\xFF','\xFE\xFF','\xFF,\xFE','\x80\x00\x00\x00','\x7F\xFF']
+        
     chlist=list(ch)# we change str to list because it saves space when replacing chars at multiple index in a string.
     #first lets change offsets from LEA
     if pr in config.LEAMAP:
@@ -100,7 +101,6 @@ def taint_based_change(ch,pr):
                 if of >= len(chlist):
                     continue
                 chlist[of]=random.choice(extVal)
-
     	   
     if pr in config.TAINTMAP:
         #we want to do 2 things:
@@ -162,7 +162,7 @@ def taint_based_change(ch,pr):
 
     return ''.join(chlist)
 
-def taint_limited_change(ch):
+def taint_limited_change(ch): #never used
     ''' this function takes a string and change certain offsets according to the MOSTCOMMON dictionary.'''
     chlist=list(ch)
     
@@ -235,6 +235,47 @@ def create_files(num):
             num -= 1
     return 0
 
+def taint_mutate(ch, pl, ga):
+    rel_bytes_set = None
+    if pl in config.TC_TARGET:
+      target_func = config.TC_TARGET[pl]
+      target_func_bytes_set = set()
+      if pl in config.FUNC_TAINTMAP and target_func in config.FUNC_TAINTMAP[pl]:
+        target_func_bytes_set |= config.FUNC_TAINTMAP[pl][target_func]
+      if pl in config.FUNC_LEAMAP and target_func in config.FUNC_LEAMAP[pl]:
+        target_func_bytes_set |= config.FUNC_LEAMAP[pl][target_func]
+      rel_func_list = []
+      target_exec = config.FUNC_REL[target_func][target_func]
+      for func in config.FUNC_REL[target_func]:
+        if config.FUNC_REL[target_func][func] // target_exec >= config.REL_THRESHOLD:
+          if func == target_func:
+            continue
+          rel_func_list.append(func)
+      rel_bytes_set = set()
+      try:
+        for func in rel_func_list:
+          if func in config.FUNC_TAINTMAP[pl]:
+            rel_bytes_set |= config.FUNC_TAINTMAP[pl][func] #union
+          if func in config.FUNC_LEAMAP[pl]:
+            rel_bytes_set |= config.FUNC_LEAMAP[pl][func]
+      except KeyError:
+        pass
+      rel_bytes_set |= target_func_bytes_set
+      if len(rel_bytes_set) == 0:
+        return taint_based_change(ga.mutate(ch, pl),pl)
+      chlist = list(ch)
+      for byte in rel_bytes_set:
+        if byte >= len(chlist):
+          continue
+        try:
+          tval = random.randint(0,255)
+          chlist[byte] = chr(tval)
+        except IndexError:
+          pass
+      return ''.join(chlist)
+    else:
+      print "[*] can't get target function of ",pl
+      return taint_based_change(ga.mutate(ch, pl),pl)
 
 
 def createNextGeneration3(fit,gn):
@@ -283,7 +324,7 @@ def createNextGeneration3(fit,gn):
         fp2=os.path.join(config.INPUTD,par[1])
         inpsp=os.listdir(config.INTER)
         
-        sin1= None #using random string as a flag is not proper.
+        sin1= None #special input 
         sin2= None
         #choose from INTER with some probability.
         if len(inpsp)>0:
@@ -298,18 +339,19 @@ def createNextGeneration3(fit,gn):
         p1=readFile(fp1)
         p2=readFile(fp2)
         if (len(p1) > bestLen) or (len(p2) > bestLen): #won't going to perform crossover
-            #print "no crossover"
-            #mch1= ga.mutate(p1)
             if sin1 is not None:
-                mch1= ga.mutate(p1,sin1)
-                mch1=taint_based_change(mch1,sin1)
+                if random.randint(0,9) < config.MUTPROB:
+                  mch1 = taint_based_change(ga.mutate(p1,sin1), sin1)
+                else:
+                  mch1 = taint_mutate(p1, sin1, ga)
             else:
                 mch1= ga.mutate(p1,par[0])
                 mch1=taint_based_change(mch1,par[0])
-            #mch2= ga.mutate(p2)
             if sin2 is not None:
-                mch2= ga.mutate(p2,sin2)
-                mch2=taint_based_change(mch2,sin2)
+                if random.randint(0,9) < config.MUTPROB:
+                  mch2 = taint_based_change(ga.mutate(p2,sin2), sin2)
+                else:
+                  mch2 = taint_mutate(p2, sin2, ga)
             else:
                 mch2= ga.mutate(p2,par[1])
                 mch2=taint_based_change(mch2,par[1])
@@ -319,15 +361,16 @@ def createNextGeneration3(fit,gn):
             writeFile(np2,mch2)
             i+=2
             #continue
-        else:
-            #print "crossover"
+        else: #perform crossover then, might mutate
             ch1,ch2 = ga.crossover(p1,p2)
             #now we do mutation on these children, one by one
-            if random.uniform(0.1,1.0)>(1.0 - config.PROBMUT):
+            if random.uniform(0.1,1.0)>(1.0 - config.PROBMUT): #mutate ch1?
                 #mch1= ga.mutate(ch1)
                 if sin1 is not None:
-                    mch1= ga.mutate(ch1,sin1)
-                    mch1=taint_based_change(mch1,sin1)
+                  if random.randint(0,9) < config.MUTPROB:
+                    mch1 = taint_based_change(ga.mutate(ch1,sin1), sin1)
+                  else:
+                    mch1 = taint_mutate(ch1, sin1, ga)
                 else:
                     mch1= ga.mutate(ch1,par[0])
                     mch1=taint_based_change(mch1,par[0])
@@ -340,11 +383,14 @@ def createNextGeneration3(fit,gn):
                 else:
                     ch1=taint_based_change(ch1,par[0])
                 writeFile(np1,ch1)
-            if random.uniform(0.1,1.0)>(1.0 - config.PROBMUT):
+
+            if random.uniform(0.1,1.0)>(1.0 - config.PROBMUT): #mutate ch2?
                 #mch2= ga.mutate(ch2)
                 if sin2 is not None:
-                    mch2= ga.mutate(ch2,sin2)
-                    mch2=taint_based_change(mch2,sin2)
+                  if random.randint(0,9) < config.MUTPROB:
+                    mch2 = taint_based_change(ga.mutate(ch2,sin2), sin2)
+                  else:
+                    mch2 = taint_mutate(ch2, sin2, ga)
                 else:
                     mch2= ga.mutate(ch2,par[1])
                     mch2=taint_based_change(mch2,par[1])
@@ -384,6 +430,9 @@ def prepareBBOffsets():
         tBB=pickle.load(pFD)
         for tb in tBB:
             ad=tb+int(config.LIBOFFSETS[i],0)
+            config.BB_FUNC_MAP[ad] = tBB[tb][1]
+            if tBB[tb][1] not in config.OFFSET_FUNCNAME:
+              config.OFFSET_FUNCNAME[tBB[tb][1]] = tBB[tb][2]
             # we do not consider weights greater than BBMAXWEIGHT and we take log2 of weights as final weight.
             if tBB[tb][0]>config.BBMAXWEIGHT:
                 config.ALLBB[ad]=int(math.log(config.BBMAXWEIGHT,2))
@@ -394,6 +443,7 @@ def prepareBBOffsets():
             config.cALLBB.add(ad)
         pFD.close()
         tFD=open(config.NAMESPICKLE[i],"r")
+        print config.NAMESPICKLE[i]
         tdata=pickle.load(tFD)
         tempFull.update(tdata[0])# set of full strings from the binary
         tempByte.update(tdata[1])# set of individual bytes from the binary
@@ -404,8 +454,13 @@ def prepareBBOffsets():
       tempFull.discard('\x00\xff\xff\xff\xff')
     config.ALLSTRINGS.append(tempFull.copy())
     config.ALLSTRINGS.append(tempByte.copy())
+    bbf = open(os.path.join(config.LOGS, "BB_address.list"), "a")
+    bbf.write("ALLBB\n")
+    for ad in config.ALLBB:
+       bbf.write(str(ad) + ":" +str(config.BB_FUNC_MAP[ad]) +"," + str(config.ALLBB[ad])+"\n")
+    bbf.close()
     
-def prepareLibBBOffsets(loffset):
+def prepareLibBBOffsets(loffset): # never called
     ''' This functions load pickle files to prepare BB weights in the case of loadtime image address change.
 '''
     config.ALLBB.clear()
@@ -440,7 +495,6 @@ def fitnesCal2(bbdict, cinput,ilen):
     if numEBB>0:
         weight_error=-len(bbdict)*config.ERRORBBPERCENTAGE/numEBB
     
-    
     tset=set(bbdict)-errorset # we make sure that newly discovered BBs are not related to error BB.
     config.cPERGENBB.update(tset)
     #check new coverage
@@ -450,19 +504,50 @@ def fitnesCal2(bbdict, cinput,ilen):
         config.GOTSPECIAL=True
         config.SEENBB.update(diffb)
 
+    bbf = open(os.path.join(config.LOGS,"BB_weights.log"), "a")
+    func_sum = dict()
+    #bbf2 = open(os.path.join(config.LOGS,"BB_address.csv"),"a")
+    bbf.write("================================\n")
+    #bbf2.write("================================\n")
     for bbadr in bbdict: 
+        #bbf2.write(str(bbadr) + ", ")
         bbfr=bbdict[bbadr]
         if bbfr > config.BBMAXFREQ:
             bbfr = config.BBMAXFREQ
         lgfr=int(math.log(bbfr+1,2)) #1 is added to avoid having log(1)=0 case
         if bbadr in errorset:
-            score=score+(lgfr*weight_error)
+            bb_score = (lgfr*weight_error)
         elif bbadr in config.ALLBB:
-            score=score+(lgfr*config.ALLBB[bbadr])
+            bb_score = lgfr*config.ALLBB[bbadr]
             bbNum +=1
         else:
-            score = score+lgfr
+            bb_score = lgfr
             bbNum +=1
+        if bbadr in config.BB_FUNC_MAP:
+          root_func = config.BB_FUNC_MAP[bbadr]
+          if root_func in func_sum:
+            func_sum[root_func] += bb_score
+          else:
+            func_sum[root_func] = bb_score
+        score += bb_score
+    #bbf2.write("mean : " + str(bbsum // bbNum) + "\n")
+    #bbf2.close()
+    #bbf.write("func score : \n")
+    maxsum = 0
+    maxfunc = None
+    for func in func_sum:
+      tmp = func_sum[func]
+      if maxsum < tmp:
+        maxsum = tmp
+        maxfunc = func
+    if maxfunc is not None:
+      if maxfunc in config.OFFSET_FUNCNAME:
+        bbf.write("maxfunc : " + config.OFFSET_FUNCNAME[maxfunc] + "," + str(func_sum[maxfunc]) + "\n")
+      else:
+        bbf.write("maxfunc : " + str(maxfunc) + "," + str(func_sum[maxfunc]) + "\n")
+      config.TC_TARGET[cinput] = config.OFFSET_FUNCNAME[maxfunc]
+    bbf.write("total score : " + str(score) + "\n")
+    bbf.close()
     del errorset
     if ilen > config.MAXINPUTLEN:
         return (score*bbNum)/int(math.log(ilen+1,2))

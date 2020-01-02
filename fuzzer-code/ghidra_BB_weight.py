@@ -245,10 +245,10 @@ def main():
     str_full=set()# set of the strings appearing in CMP instructions
     str_bytes=set() # set of individual bytes of the strings in the above set
     bb_weight=dict()
+    bb_root = dict()
     total_bb=0 #total number of BBs analyzed
     total_func=0 # total number of functions analyzed
     global uncovered_edges
-
 
     #let's iterate over all the functions
     func_iter=clist.getFunctions(True)
@@ -268,14 +268,14 @@ def main():
         temp=getCMPData(function)
         str_full.update(temp[0])
         str_bytes.update(temp[1])
+        bbscore = getBBScore(function)
+        bb_weight.update(bbscore)
+        for bb in bbscore:
+          bb_root[bb] = (root, function.getName())
 
-        bb_weight.update(getBBScore(function))
-        #print "[*] done...."
-        for bb in bb_weight:
-            #print "BB: 0x%x - %3.2f"%(bb-image_base, 1.0/bb_weight[bb])
-            #printf("BB: 0x%x - %3.2f\n", (bb-image_base), 1.0/bb_weight[bb])            
-            fweight[bb-image_base]=(1.0/bb_weight[bb], root)
-            # the 'root' is added for the compatibility purpose. it has no value as such.
+    for bb in bb_weight:
+        fweight[bb-image_base]=(1.0/bb_weight[bb], bb_root[bb][0],bb_root[bb][1])
+
     str_final=[str_full, str_bytes]
     path,file_name=os.path.split(currentProgram.getExecutablePath())
     str_file=file_name + '.names'

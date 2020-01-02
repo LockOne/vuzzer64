@@ -8,6 +8,8 @@ import os
 
 mydir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 BASETMP=os.path.join(mydir,"vutemp")
+
+LOGS = os.path.join(mydir, "logs")
 ######################
 #for PIN trace to work, run the following from the shell you will run your fuzzer:
 # echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
@@ -79,7 +81,7 @@ DRYRUN=True
 INPUTD=os.path.join(BASETMP,"data/")
 
 #set error log in this file
-ERRORS="error.log"
+ERRORS=os.path.join(LOGS,"error.log")
 
 # set file path to read addresses of loaded libraries. This is feature is not used currently. We read the offset by running the SUT and then manually get these offsets and write them in LIBOFFSETS variable below (in the same order that names in LIBPICKLE list. 
 IMAGELOAD="imageOffset.txt"
@@ -90,7 +92,7 @@ IMAGELOAD="imageOffset.txt"
 BBCMD=["BBOUT=%s" % BBOUT, "LIBS=", "./run_bb.sh"]
 
 #PINTNTCMD=[PINHOME,"-follow_execv","-t", PINTNT,"-filename", "inputf","-stdout","0","--"]
-PINTNTCMD=["./run_2.sh"]
+PINTNTCMD=["./run_taint.sh"]
 
 # IntelPT related CMD
 SIMPLEPTDIR=mydir + '/../simple-pt/'
@@ -153,7 +155,7 @@ BESTP=40
 GENNUM=1000
 
 #set probability of selecting new inputs from special or best inputs. Higer the number (0-9), less will be the chance of selecting from Special inputs.
-SELECTNUM=3
+SELECTNUM=3 #special 0.7, normal 0.3
 
 # set the number of files that will be analyzed for taintflow in new generation.
 NEWTAINTFILES=100
@@ -167,7 +169,7 @@ PROBCROSS=0.3
 PROBMUT=0.9#0.8
 
 # set the probability of choosing MOSTCOMMON last value for a offset. Larger the value, more probability of chossing last value (default should be 8)
-MOSTCOMNLAST= 6 #For LAva-M dataset, set this value to <=4
+MOSTCOMNLAST= 4 #For LAva-M dataset, set this value to <=4
 RANDOMCOMN= True # this is to skip setting most common values for a offset sometimes. For LAVA-M, set this value to True.
 
 # stoping condition "if found a crash, stop"
@@ -224,7 +226,12 @@ MAXINPUTLEN=50000 # this is the limit (50kb) on length of the input. After that 
 FLASK=False
 
 FUNC_REL = dict()
-
 START_TIME = 0
-
 TOTAL_TIMEOUT = 24 * 60 * 60
+BB_FUNC_MAP = dict()
+OFFSET_FUNCNAME = dict()
+FUNC_TAINTMAP = dict()
+FUNC_LEAMAP = dict()
+TC_TARGET = dict()
+REL_THRESHOLD = 0.9
+MUTPROB = 2 # 20%

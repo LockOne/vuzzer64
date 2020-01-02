@@ -210,7 +210,6 @@ def get_hexStr(inp):
         return r
     #return bina.unhexlify('0'+inp[2:])
     #return bina.unhexlify(inp[2:])
-
 def isNonPrintable(hexstr):
     nonprint=['\x0a','\x0d']
     if hexstr in nonprint:
@@ -268,13 +267,19 @@ def get_non_empty(mat, num):
     return -1
     #return str(mi)
 
-def read_lea():
+def read_lea(fl):
     '''
     we also read lea.out file to know offsets that were used in LEA instructions. There offsets are good candidates to fuzz with extreme values, like \xffffffff, \x80000000.'''
+    if ((not os.path.isfile("lea.out")) or os.path.getsize("lea.out") ==0):
+      print "[*] Warning! empty lea.out file!"
+      return set()
+ 
     leaFD=open("lea.out","r")
     offsets=set() # set to keep all the offsets that are used in LEA instructions.
     pat=re.compile(r"(\d+) (\w+) \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\} \{([0-9,]*)\}",re.I)
     
+    cur_func = ""
+    func_leamap = dict()
     for ln in leaFD:
         mat=pat.match(ln)
         try:# this is a check to see if lea entry is complete.
@@ -283,24 +288,33 @@ def read_lea():
           else:
             rr=mat.group(10)
         except:
+            if "baseidx 0x" not in ln:
+              cur_func = ln.strip()
+              if cur_func not in func_leamap:
+                func_leamap[cur_func] = set()
             continue
         tempoff=get_non_empty(mat,3)#mat.group(9)
         if tempoff == -1:
-            continue
-        toff=tempoff.split(',')
-        toff=[int(o) for o in toff]
+          continue
+        toff=[int(o) for o in tempoff.split(',')]
         if len(toff)<5:
-            offsets.add(toff[0])
+          func_leamap[cur_func].update(toff)
+          offsets.add(toff[0])
+    config.FUNC_LEAMAP[fl] = func_leamap
     return offsets.copy()
 
-def read_func():
+def read_func(fl):
     if ((not os.path.isfile("func.out")) or os.path.getsize("func.out") == 0):
       print "[*] Warning! empty func.out file!"
       return
     funcFD = open("func.out", "r")
+    funcfd2 = open(os.path.join(config.LOGS, "func_offset.list"),"a")
     funclist = []
     for ln in funcFD:
-      funclist.append(ln.strip())
+      funcname, funcoffset = tuple(ln.strip().split(","))
+      funclist.append(funcname)
+      config.OFFSET_FUNCNAME[long(funcoffset)] = funcname
+    funcfd2.close()
     for fn1 in funclist:
       for fn2 in funclist:
         if fn1 in config.FUNC_REL:
@@ -330,7 +344,7 @@ def check_timeout():
 
 
 
-def read_taint(fpath):
+def read_taint(fpath, fl):
     ''' This function read cmp.out file and parses it to extract offsets and coresponding values and returns a tuple(alltaint, taintoff).
     taintoff: {offset -> a set of hex values} (hex values which are checked for that offset in the cmp instruction.)
     Currently, we want to extract values s.t. one of the operands of CMP instruction is imm value for this set of values.
@@ -339,14 +353,15 @@ def read_taint(fpath):
 
     taintOff=dict()#dictionary to keep info about single tainted offsets and values.
     alltaintoff=set()#it keeps all the offsets (expluding the above case) that were used at a CMP instruction.
+    func_taintmap = dict()
     fsize=os.path.getsize(fpath)
     offlimit=0
     #check if taint was generated, else exit
-    if ((not os.path.isfile("func.out")) or os.path.getsize("func.out") ==0):
+    if ((not os.path.isfile("cmp.out")) or os.path.getsize("cmp.out") ==0):
       print "[*] Warning! empty cmp.out file!"
       return (alltaintoff, taintOff)
       #gau.die("Empty cmp.out file! Perhaps taint analysis did not run...")
-    cmpFD=open("func.out","r")
+    cmpFD=open("cmp.out","r")
     # each line of the cmp.out has the following format:
     #32 reg imm 0xb640fb9d {155} {155} {155} {155} {} {} {} {} 0xc0 0xff
     #g1 g2 g3     g4        g5    g6    g7    g8  g9 g10 g11 g12 g13 g14
@@ -367,6 +382,9 @@ def read_taint(fpath):
         else:
           rr=mat.group(22)
       except:
+        cur_func = ln.strip()
+        if cur_func not in func_taintmap:
+          func_taintmap[cur_func] = set()
         continue
       if config.BIT64 == False:
         op1start = 5
@@ -412,6 +430,7 @@ def read_taint(fpath):
             continue
           ofs,hexstr=extract_offsetStr(tempoff,mat.group(op1val),fsize)
           if ofs !=-1000:
+            func_taintmap[cur_func].add(ofs)
             if config.ALLBYTES == True or (hexstr !='\xff\xff\xff\xff' and hexstr != '\x00'):#this is a special case
               if ofs not in taintOff:
                 taintOff[ofs]=[hexstr]# we are going to change set to list for "last" offset checked.
@@ -429,6 +448,7 @@ def read_taint(fpath):
           ofs,hexstr=extract_offsetStr(tempoff,mat.group(op2val),fsize)
             
           if ofs !=-1000:
+            func_taintmap[cur_func].add(ofs)
             if config.ALLBYTES == True or (hexstr !='\xff\xff\xff\xff' and hexstr !='\x00'):#this is a special case
               if ofs not in taintOff:
                 taintOff[ofs]=[hexstr]# we are going to change set to list for "last" offset checked.
@@ -457,6 +477,7 @@ def read_taint(fpath):
             ofs,hexstr=(-1000,[])
      
           if ofs !=-1000:
+            func_taintmap[cur_func].add(ofs)
             if config.ALLBYTES == True or (hexstr !='\xff\xff\xff\xff' and hexstr != '\x00'):#this is a special case
               if ofs not in taintOff:
                 taintOff[ofs]=[hexstr]# we are going to change set to list for "last" offset checked.
@@ -487,12 +508,9 @@ def read_taint(fpath):
             todel.add(el)
     for el in todel:
         alltaintoff.remove(el)
-        #print '*',el
         alltaintoff.add(el-fsize)
 
-    #alltaintoff.difference_update(taintOff)
-    #print alltaintoff, taintOff
-    
+    config.FUNC_TAINTMAP[fl] = func_taintmap
     return (alltaintoff,taintOff)
 
      
@@ -517,10 +535,9 @@ def get_taint(dirin, is_initial=0):
       if rcode ==255:
         #continue #what..?!
         gau.die("pintool terminated with error 255 on input %s"%(pfl,))
-      config.TAINTMAP[fl]=read_taint(pfl)
-      config.LEAMAP[fl]=read_lea()          
-      #read_func()
-
+      config.TAINTMAP[fl]=read_taint(pfl, fl)
+      config.LEAMAP[fl]=read_lea(fl)          
+      read_func(fl)
 
     if config.MOSTCOMFLAG==False: #False by default
         #print "computing MOSTCOM calculation..."
@@ -596,6 +613,8 @@ def dry_run():
             print "Signal: %d"% (retc,)
             gau.die("looks like we already got a crash!!")
         config.GOODBB |= set(bbs.keys())
+        iln = os.path.getsize(tfl)
+        gau.fitnesCal2(bbs, fl, iln)
     print "[*] Finished good inputs (%d)"%(len(config.GOODBB),)
     #now lets run SUT of probably invalid files. For that we need to create them first.
     print "[*] Starting bad inputs.."
@@ -617,6 +636,7 @@ def dry_run():
                 print "Signal: %d"% (retc,)
                 gau.die("looks like we already got a crash!!")
             tempbad.append(set(bbs.keys()) - config.GOODBB)
+
             
         tempcomn=set(tempbad[0])
         for di in tempbad:
@@ -627,7 +647,7 @@ def dry_run():
     #  tempcomn = set()
     ###print "[*] finished bad inputs (%d)"%(len(tempbad),)
     config.ERRORBBALL=badbb.copy()
-    print "[*] finished common BB. Total such BB: %d"%(len(badbb),)
+    print "[*] finished common BB. Total bad BB: %d"%(len(badbb),)
     for ebb in config.ERRORBBALL:
         print "error bb: 0x%x"%(ebb,)
     time.sleep(5)
@@ -647,7 +667,7 @@ def dry_run():
 
 
 def print_func_rel():
-    ff = open("funcrel.csv", "w")
+    ff = open(os.path.join(config.LOGS, "funcrel.csv"), "w")
     fl = config.FUNC_REL.keys()
     ff.write(",")
     for f1 in fl:
@@ -715,7 +735,7 @@ def main():
     except OSError:
         pass
     if os.path.isdir(config.BASETMP)== False:
-        os.mkdir(config.BASETMP)
+      os.mkdir(config.BASETMP)
     check_env()
     ## parse the arguments #########
     parser = argparse.ArgumentParser(description='VUzzer options')
@@ -767,8 +787,14 @@ def main():
         os.mkdir(config.INTER)
     except OSError:
         gau.emptyDir(config.INTER)
+   
+    try: 
+      os.mkdir(config.LOGS)
+    except OSError:
+        gau.emptyDir(config.LOGS)
    #############################################################################
     #let us get the base address of the main executable.
+    '''
     ifiles=os.listdir(config.INITIALD)
     for fl in ifiles:
         tfl=os.path.join(config.INITIALD,fl)
@@ -788,10 +814,14 @@ def main():
     config.LIBOFFSETS[0]=lst[1][:]
     imgOffFd.close()
     #############################################################################
+    '''
+
+    #it does not automatically read right offset......
+    config.LIBOFFSETS[0]= "0x400000"
 
  
     ###### open names pickle files
-    gau.prepareBBOffsets()
+    gau.prepareBBOffsets() 
     # lets initialize the BBFORPRUNE list from thie cALLBB set.
     if len(config.cALLBB)>0:
         config.BBFORPRUNE=list(config.cALLBB)
@@ -815,7 +845,7 @@ def main():
     lastfit=0
     
     config.CRASHIN.clear()
-    stat=open("stats.log",'w')
+    stat=open(os.path.join(config.LOGS,"stats.log"),'w')
     stat.write("**** Fuzzing started at: %s ****\n"%(datetime.now().isoformat('+'),))
     stat.write("**** Initial BB for seed inputs: %d ****\n"%(gbb,))
     stat.flush()
@@ -854,7 +884,7 @@ def main():
         gau.die("something went wrong. number of files is not right!")
 
     efd=open(config.ERRORS,"w")
-    gau.prepareBBOffsets()
+    #gau.prepareBBOffsets() #??
     writecache = True
     genran=0
     bbslide=40 # this is used to call run_error_BB() functions
@@ -996,7 +1026,6 @@ def main():
                     get_taint(config.TAINTTMP)
         print "[*] Going for new generation creation.\n" 
         gau.createNextGeneration3(fitnes,genran)
-        print "current TAINTMAP size : ",len(config.TAINTMAP),
 
     efd.close()
     stat.close()

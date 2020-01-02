@@ -403,16 +403,14 @@ void print_log(){
                 splitted.clear();
         }
         //LOG("IN PRINT LOG\n");
-        if (func_flag){
-          func_flag = 0;
+        if (func_flag & 1){
+          func_flag &= 2;
           out << *cur_func_name << std::endl;
         }
         for(size_t i=0;i<21;i++){
                 out << output[i] << " ";
-                //out_func << output[i] << " ";
         }
         out << std::endl << flush;
-        //out_func << std::endl << flush;
 }
 /* Printing Log of LEA */
 vector<string> output_lea(10,"{}");
@@ -426,17 +424,14 @@ void print_lea_log(){
                 }
                 splitted.clear();
         }
-        //LOG("IN PRINT LOG\n");
-        if (func_flag){
-          func_flag = 0;
+        if (func_flag & 2){
+          func_flag &= 1;
           out_lea << *cur_func_name << std::endl;
-        }
+        } 
         for(size_t i=0;i<10;i++){
                 out_lea << output_lea[i] << " ";
-                //out_func << output_lea[i] << " ";
         }
         out_lea << std::endl << flush ;
-        //out_func << std::endl << flush ;
 }
 
 

@@ -807,6 +807,7 @@ void forkAfter(THREADID tid, const CONTEXT *ctxt, VOID *v)
 typedef struct FuncCount{
 
   string _name;
+  ADDRINT _addr; 
   UINT64 _count;
   struct FuncCount * _next;
 } FUNC_COUNT;
@@ -826,7 +827,7 @@ void finish(INT32 code, VOID *v)
 	out_lea.flush();
 	out_lea.close();
   for (FUNC_COUNT * fc = func_list; fc; fc = fc->_next){
-    if (fc-> _count > 0) { out_func << fc->_name << std::endl;}
+    if (fc-> _count > 0) { out_func << fc->_name << "," << fc->_addr << std::endl;}
   }
   out_func.flush();
   out_func.close();
@@ -845,12 +846,13 @@ void finish(INT32 code, VOID *v)
 //void write_func(string * fname) { out_func << *fname << "\n";cur_func_name = fname; func_flag = 1;}
 //void change_func(string * fname) { cur_func_name = fname; func_flag = 1;}
 
-void docount(UINT64 * counter, string * fname) { (*counter)++; cur_func_name = fname; func_flag = 1;}
+void docount(UINT64 * counter, string * fname) { (*counter)++; cur_func_name = fname; func_flag = 3;}
 
 void Routine(RTN rtn, void *v)
 {
    FUNC_COUNT * fc = new FUNC_COUNT;
    fc -> _name = RTN_Name(rtn);
+   fc -> _addr = RTN_Address(rtn);
    fc -> _count = 0;
    fc -> _next = func_list;
    func_list = fc;

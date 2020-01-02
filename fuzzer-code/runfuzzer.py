@@ -312,6 +312,8 @@ def read_func(fl):
     funclist = []
     for ln in funcFD:
       funcname, funcoffset = tuple(ln.strip().split(","))
+      if funcname in funclist:
+        continue
       funclist.append(funcname)
       config.OFFSET_FUNCNAME[long(funcoffset)] = funcname
     funcfd2.close()

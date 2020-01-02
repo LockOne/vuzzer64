@@ -57,6 +57,7 @@ std::ofstream out_lea;
 std::ofstream out_func;
 
 string * cur_func_name;
+ADDRINT cur_func_address;
 char func_flag;
 
 std::ofstream reward_taint;
@@ -826,9 +827,6 @@ void finish(INT32 code, VOID *v)
 	out.close();
 	out_lea.flush();
 	out_lea.close();
-  for (FUNC_COUNT * fc = func_list; fc; fc = fc->_next){
-    if (fc-> _count > 0) { out_func << fc->_name << "," << fc->_addr << std::endl;}
-  }
   out_func.flush();
   out_func.close();
 	reward_taint.flush();
@@ -846,20 +844,13 @@ void finish(INT32 code, VOID *v)
 //void write_func(string * fname) { out_func << *fname << "\n";cur_func_name = fname; func_flag = 1;}
 //void change_func(string * fname) { cur_func_name = fname; func_flag = 1;}
 
-void docount(UINT64 * counter, string * fname) { (*counter)++; cur_func_name = fname; func_flag = 3;}
+void docount(ADDRINT address, string * fname) { cur_func_address = address; cur_func_name = fname; func_flag = 3;}
 
 void Routine(RTN rtn, void *v)
 {
-   FUNC_COUNT * fc = new FUNC_COUNT;
-   fc -> _name = RTN_Name(rtn);
-   fc -> _addr = RTN_Address(rtn);
-   fc -> _count = 0;
-   fc -> _next = func_list;
-   func_list = fc;
-
    RTN_Open(rtn);
    //RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)change_func, IARG_PTR, &(RTN_Name(rtn)), IARG_END);
-   RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR) docount, IARG_PTR, &(fc->_count), IARG_PTR, &(fc->_name), IARG_END);
+   RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR) docount, IARG_ADDRINT, RTN_Address(rtn), IARG_PTR, &RTN_Name(rtn), IARG_END);
    /*
    for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins))
    {

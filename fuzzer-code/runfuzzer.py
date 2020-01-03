@@ -92,10 +92,36 @@ def bbdict(fn):
     with open(config.BBOUT,"r") as bbFD:
        bb = {}
        for ln in bbFD:
+           if "funclist" in ln:
+             break
            tLine = ln.split()
            bbadr=int(tLine[0],0)
            bbfr=int(tLine[1],0)
            bb[bbadr] = bbfr
+       funclist = []
+       for ln in bbFD:
+         funcname, funcoffset = tuple(ln.strip().split(","))
+         if funcname in funclist:
+           continue
+         funclist.append(funcname)
+         config.OFFSET_FUNCNAME[long(funcoffset[2:], 16)] = funcname
+       for fn1 in funclist:
+         for fn2 in funclist:
+           if fn1 in config.FUNC_REL:
+             if fn2 in config.FUNC_REL[fn1]:
+               config.FUNC_REL[fn1][fn2] += 1
+             else:
+               config.FUNC_REL[fn1][fn2] = 1
+           else:
+             config.FUNC_REL[fn1] = {fn2 : 1}
+
+           if fn2 in config.FUNC_REL:
+             if fn1 in config.FUNC_REL[fn2]:
+               config.FUNC_REL[fn2][fn1] += 1
+             else:
+               config.FUNC_REL[fn2][fn1] = 1
+           else:
+             config.FUNC_REL[fn2] = {fn1 : 1}
        return bb
 
 
@@ -308,7 +334,6 @@ def read_func(fl):
       print "[*] Warning! empty func.out file!"
       return
     funcFD = open("func.out", "r")
-    funcfd2 = open(os.path.join(config.LOGS, "func_offset.list"),"a")
     funclist = []
     for ln in funcFD:
       funcname, funcoffset = tuple(ln.strip().split(","))
@@ -316,7 +341,6 @@ def read_func(fl):
         continue
       funclist.append(funcname)
       config.OFFSET_FUNCNAME[long(funcoffset)] = funcname
-    funcfd2.close()
     for fn1 in funclist:
       for fn2 in funclist:
         if fn1 in config.FUNC_REL:
@@ -852,7 +876,7 @@ def main():
     stat.write("**** Initial BB for seed inputs: %d ****\n"%(gbb,))
     stat.flush()
     os.fsync(stat.fileno())
-    stat.write("Genaration\t MINfit\t MAXfit\t AVGfit MINlen\t Maxlen\t AVGlen\t #BB\t AppCov\t AllCov\n")
+    stat.write("Genaration\t MINfit\t MAXfit\t AVGfit MINlen\t Maxlen\t AVGlen\t #BB\t AppCov\t AllCov\t Crash\n")
     stat.flush()
     os.fsync(stat.fileno())
     config.START_TIME=time.time()
@@ -993,7 +1017,7 @@ def main():
         print "[*] Done with all input in Gen, starting SPECIAL. \n"
         appcov,allcov=gau.calculateCov()
         tnow=datetime.now().isoformat().replace(":","-")
-        stat.write("\t%d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %s\n"%(genran,min(fitscore),maxfit,avefit,mnlen,mxlen,avlen,len(config.SEENBB),appcov,allcov,tnow))
+        stat.write("\t%d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %s\t %d\n"%(genran,min(fitscore),maxfit,avefit,mnlen,mxlen,avlen,len(config.SEENBB),appcov,allcov,tnow,len(config.CRASHIN)))
         stat.flush()
         os.fsync(stat.fileno())
         print "[*] Wrote to stat.log\n"
@@ -1017,7 +1041,7 @@ def main():
         if len(os.listdir(config.SPECIAL))>0 and SPECIALCHANGED == True:
             if len(os.listdir(config.SPECIAL))<config.NEWTAINTFILES: #The # of new generated special TC is not big
                 get_taint(config.SPECIAL)
-                print_func_rel()
+                #print_func_rel()
             else:
                 #take only 100 files in SPEICAL, perform taint analysis on it.
                 try:

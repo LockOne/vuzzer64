@@ -155,7 +155,7 @@ BESTP=40
 GENNUM=1000
 
 #set probability of selecting new inputs from special or best inputs. Higer the number (0-9), less will be the chance of selecting from Special inputs.
-SELECTNUM=3 #special 0.7, normal 0.3
+SELECTNUM=2 #special 0.7, normal 0.3
 
 # set the number of files that will be analyzed for taintflow in new generation.
 NEWTAINTFILES=100
@@ -234,4 +234,6 @@ FUNC_TAINTMAP = dict()
 FUNC_LEAMAP = dict()
 TC_TARGET = dict()
 REL_THRESHOLD = 0.9
-MUTPROB = 2 # 20%
+MUTPROB = 0 # 20%
+BYTES_SET_THRESHOLD = 20
+TRY_MUTATE = 1000

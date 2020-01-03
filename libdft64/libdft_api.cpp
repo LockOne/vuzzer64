@@ -54,7 +54,7 @@
 /* Cmp.out file offset */
 std::ofstream out;
 std::ofstream out_lea;
-std::ofstream out_func;
+//std::ofstream out_func;
 
 string * cur_func_name;
 ADDRINT cur_func_address;
@@ -805,16 +805,6 @@ void forkAfter(THREADID tid, const CONTEXT *ctxt, VOID *v)
 }
 */
 
-typedef struct FuncCount{
-
-  string _name;
-  ADDRINT _addr; 
-  UINT64 _count;
-  struct FuncCount * _next;
-} FUNC_COUNT;
-
-FUNC_COUNT * func_list = NULL;
-
 void finish(INT32 code, VOID *v)
 {
 	//std::string loadpath;
@@ -827,8 +817,8 @@ void finish(INT32 code, VOID *v)
 	out.close();
 	out_lea.flush();
 	out_lea.close();
-  out_func.flush();
-  out_func.close();
+  //out_func.flush();
+  //out_func.close();
 	reward_taint.flush();
 	reward_taint.close();
 	// End
@@ -841,15 +831,11 @@ void finish(INT32 code, VOID *v)
 	//fclose(fMergeLog);
 }
 
-//void write_func(string * fname) { out_func << *fname << "\n";cur_func_name = fname; func_flag = 1;}
-//void change_func(string * fname) { cur_func_name = fname; func_flag = 1;}
-
 void docount(ADDRINT address, string * fname) { cur_func_address = address; cur_func_name = fname; func_flag = 3;}
 
 void Routine(RTN rtn, void *v)
 {
    RTN_Open(rtn);
-   //RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)change_func, IARG_PTR, &(RTN_Name(rtn)), IARG_END);
    RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR) docount, IARG_ADDRINT, RTN_Address(rtn), IARG_PTR, &RTN_Name(rtn), IARG_END);
    /*
    for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins))

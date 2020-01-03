@@ -407,7 +407,7 @@ void print_log(){
         if (func_flag & 1){
           func_flag &= 2;
           out << *cur_func_name << std::endl;
-          out_func << *cur_func_name << "," << cur_func_address << std::endl << flush;
+          //out_func << *cur_func_name << "," << cur_func_address << std::endl << flush;
         }
         for(size_t i=0;i<21;i++){
                 out << output[i] << " ";
@@ -429,7 +429,7 @@ void print_lea_log(){
         if (func_flag & 2){
           func_flag &= 1;
           out_lea << *cur_func_name << std::endl;
-          out_func << *cur_func_name << "," << cur_func_address << std::endl << flush;
+          //out_func << *cur_func_name << "," << cur_func_address << std::endl << flush;
         } 
         for(size_t i=0;i<10;i++){
                 out_lea << output_lea[i] << " ";

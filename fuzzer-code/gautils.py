@@ -7,7 +7,7 @@ import math
 import random
 import shutil
 
-from runfuzzer import check_timeout #move to util.py?
+from runfuzzer import check_timeout, run #move to util.py?
 
 def die(msg) :
     print msg
@@ -236,7 +236,6 @@ def create_files(num):
     return 0
 
 def taint_mutate(ch, pl, ga):
-    rel_bytes_set = None
     if pl in config.TC_TARGET:
       target_func = config.TC_TARGET[pl]
       target_func_bytes_set = set()
@@ -244,37 +243,49 @@ def taint_mutate(ch, pl, ga):
         target_func_bytes_set |= config.FUNC_TAINTMAP[pl][target_func]
       if pl in config.FUNC_LEAMAP and target_func in config.FUNC_LEAMAP[pl]:
         target_func_bytes_set |= config.FUNC_LEAMAP[pl][target_func]
-      rel_func_list = []
       if target_func not in config.FUNC_REL:
+        print "[*]", target_func, " not in config.FUNC_REL "
         return taint_based_change(ga.mutate(ch, pl),pl)
-      target_exec = config.FUNC_REL[target_func][target_func]
-      for func in config.FUNC_REL[target_func]:
-        if config.FUNC_REL[target_func][func] // target_exec >= config.REL_THRESHOLD:
-          if func == target_func:
-            continue
-          rel_func_list.append(func)
       rel_bytes_set = set()
-      try:
-        for func in rel_func_list:
-          if func in config.FUNC_TAINTMAP[pl]:
-            rel_bytes_set |= config.FUNC_TAINTMAP[pl][func] #union
-          if func in config.FUNC_LEAMAP[pl]:
-            rel_bytes_set |= config.FUNC_LEAMAP[pl][func]
-      except KeyError:
-        pass
+      if len(target_func_bytes_set) <= config.BYTES_SET_THRESHOLD:
+        rel_func_list = []
+        target_exec = config.FUNC_REL[target_func][target_func]
+        for func in config.FUNC_REL[target_func]:
+          if config.FUNC_REL[target_func][func] // target_exec >= config.REL_THRESHOLD:
+            if func == target_func:
+              continue
+            rel_func_list.append(func)
+        try:
+          for func in rel_func_list:
+            if func in config.FUNC_TAINTMAP[pl]:
+              rel_bytes_set |= config.FUNC_TAINTMAP[pl][func] #union
+            if func in config.FUNC_LEAMAP[pl]:
+              rel_bytes_set |= config.FUNC_LEAMAP[pl][func]
+        except KeyError:
+          pass
       rel_bytes_set |= target_func_bytes_set
       if len(rel_bytes_set) == 0:
+        print "[*] empty rel bytes set"
         return taint_based_change(ga.mutate(ch, pl),pl)
-      chlist = list(ch)
-      for byte in rel_bytes_set:
-        if byte >= len(chlist):
-          continue
-        try:
-          tval = random.randint(0,255)
-          chlist[byte] = chr(tval)
-        except IndexError:
-          pass
-      return ''.join(chlist)
+      tmpp = os.path.join(config.BASETMP, "tmpout")
+      for i in range(config.TRY_MUTATE):
+        chlist = list(ch)
+        for byte in rel_bytes_set:
+          if byte >= len(chlist):
+            continue
+          try:
+            tval = random.randint(0,255)
+            chlist[byte] = chr(tval)
+          except IndexError:
+            pass
+        writeFile(tmpp, ''.join(chlist))
+        args=config.SUT % tmpp
+        retc = run(args.split(' '))
+        if retc < 0:
+          return ''.join(chlist)
+        
+      print "[*] taint_mutated : ",pl," : ", str(len(rel_bytes_set))," bytes"
+      return taint_based_change(''.join(chlist), pl)
     else:
       print "[*] can't get target function of ",pl
       return taint_based_change(ga.mutate(ch, pl),pl)
@@ -381,7 +392,7 @@ def createNextGeneration3(fit,gn):
                 writeFile(np1,mch1)
             else:
                 if sin1 is not None:
-                    ch1=taint_based_change(ch1,sin1)
+                    ch1=taint_mutate(ch1,sin1,ga)
                 else:
                     ch1=taint_based_change(ch1,par[0])
                 writeFile(np1,ch1)
@@ -402,7 +413,7 @@ def createNextGeneration3(fit,gn):
                 writeFile(np2,mch2)
             else:
                 if sin2 is not None:
-                    ch2=taint_based_change(ch2,sin2)
+                    ch2=taint_mutate(ch2,sin2, ga)
                 else:
                     ch2=taint_based_change(ch2,par[1])
 
@@ -456,11 +467,6 @@ def prepareBBOffsets():
       tempFull.discard('\x00\xff\xff\xff\xff')
     config.ALLSTRINGS.append(tempFull.copy())
     config.ALLSTRINGS.append(tempByte.copy())
-    bbf = open(os.path.join(config.LOGS, "BB_address.list"), "a")
-    bbf.write("ALLBB\n")
-    for ad in config.ALLBB:
-       bbf.write(str(ad) + ":" +str(config.BB_FUNC_MAP[ad]) +"," + str(config.ALLBB[ad])+"\n")
-    bbf.close()
     
 def prepareLibBBOffsets(loffset): # never called
     ''' This functions load pickle files to prepare BB weights in the case of loadtime image address change.
@@ -506,10 +512,10 @@ def fitnesCal2(bbdict, cinput,ilen):
         config.GOTSPECIAL=True
         config.SEENBB.update(diffb)
 
-    bbf = open(os.path.join(config.LOGS,"BB_weights.log"), "a")
+    #bbf = open(os.path.join(config.LOGS,"BB_weights.log"), "a")
     func_sum = dict()
     #bbf2 = open(os.path.join(config.LOGS,"BB_address.csv"),"a")
-    bbf.write("================================\n")
+    #bbf.write("================================\n")
     #bbf2.write("================================\n")
     for bbadr in bbdict: 
         #bbf2.write(str(bbadr) + ", ")
@@ -543,13 +549,15 @@ def fitnesCal2(bbdict, cinput,ilen):
         maxsum = tmp
         maxfunc = func
     if maxfunc is not None:
+      '''
       if maxfunc in config.OFFSET_FUNCNAME:
         bbf.write("maxfunc : " + config.OFFSET_FUNCNAME[maxfunc] + "," + str(func_sum[maxfunc]) + "\n")
       else:
         bbf.write("maxfunc : " + str(maxfunc) + "," + str(func_sum[maxfunc]) + "\n")
+      '''
       config.TC_TARGET[cinput] = config.OFFSET_FUNCNAME[maxfunc]
-    bbf.write("total score : " + str(score) + "\n")
-    bbf.close()
+    #bbf.write("total score : " + str(score) + "\n")
+    #bbf.close()
     del errorset
     if ilen > config.MAXINPUTLEN:
         return (score*bbNum)/int(math.log(ilen+1,2))

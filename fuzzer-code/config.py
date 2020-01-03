@@ -223,5 +223,5 @@ MAXINPUTLEN=50000 # this is the limit (50kb) on length of the input. After that 
 
 FLASK=False
 
-TOTAL_TIMEOUT = 12 * 60 * 60
+TOTAL_TIMEOUT = 24 * 60 * 60
 START_TIME = 0

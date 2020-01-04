@@ -80,9 +80,11 @@ def run(cmd):
     #print "[*] Just about to run ", cmd
     proc = subprocess.Popen(" ".join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)    
     stdout, stderr = proc.communicate()
+    if b"Successfully triggered bug " in stdout:
+      return -1
     #print "[*] Run complete..\n"
     #print "## RC %d"%proc.returncode
-    return 128-proc.returncode # Note: the return is subtracted from 128 to make it compatible with the python Popen return code. Earlier, we were not using the SHELL with Popen.
+    return proc.returncode # Note: the return is subtracted from 128 to make it compatible with the python Popen return code. Earlier, we were not using the SHELL with Popen.
 
 def sha1OfFile(filepath):
     with open(filepath, 'rb') as f:
@@ -635,8 +637,9 @@ def dry_run():
         except:
             gau.die("can not open our own input %s!"%(tfl,))
         (bbs,retc)=execute(tfl)
-        if retc < 0:
+        if retc not in config.NON_CRASH_RET_CODES:
             print "Signal: %d"% (retc,)
+            print tfl
             gau.die("looks like we already got a crash!!")
         config.GOODBB |= set(bbs.keys())
         iln = os.path.getsize(tfl)
@@ -658,7 +661,7 @@ def dry_run():
         for fl in dfiles:
             tfl=os.path.join(config.INPUTD,fl)
             (bbs,retc)=execute(tfl)
-            if retc < 0:
+            if retc not in config.NON_CRASH_RET_CODES :
                 print "Signal: %d"% (retc,)
                 gau.die("looks like we already got a crash!!")
             tempbad.append(set(bbs.keys()) - config.GOODBB)
@@ -971,7 +974,7 @@ def main():
               execs+=1
               #let us prune the inputs(if at all), whose trace is subset of the new input just got executed.
               SPECIALADDED= False
-              if config.GOTSPECIAL==True:
+              if config.GOTSPECIAL==True and (retc in config.NON_CRASH_RET_CODES) :
                   SPECIALCHANGED=True
                   SPECIALADDED= True
                   todelete.clear()
@@ -991,7 +994,7 @@ def main():
                   for ele in todelete:
                       del config.SPECIALBITVECTORS[ele]
 
-              if retc < 0 and retc != -2:
+              if retc not in config.NON_CRASH_RET_CODES:
                   #print "[*]Error code is %d"%(retc,)
                   efd.write("%s: %d\n"%(tfl, retc))
                   efd.flush()
@@ -1003,8 +1006,6 @@ def main():
                       nf="%s-%s.%s"%(progname,tnow,gau.splitFilename(fl)[1])
                       npath=os.path.join("outd/crashInputs",nf)
                       shutil.copyfile(tfl,npath)
-                      if SPECIALADDED==False:
-                          shutil.copy(tfl,config.SPECIAL)
                       config.CRASHIN.add(fl)
                   if config.STOPONCRASH == True:
                       #efd.close()

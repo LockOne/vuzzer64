@@ -155,7 +155,7 @@ BESTP=40
 GENNUM=1000
 
 #set probability of selecting new inputs from special or best inputs. Higer the number (0-9), less will be the chance of selecting from Special inputs.
-SELECTNUM=2 #special 0.7, normal 0.3
+SELECTNUM=3 #special 0.7, normal 0.3
 
 # set the number of files that will be analyzed for taintflow in new generation.
 NEWTAINTFILES=100
@@ -166,7 +166,7 @@ FITMARGIN= 0
 PROBCROSS=0.3
 
 #set mutation probability
-PROBMUT=0.9#0.8
+PROBMUT=0.8
 
 # set the probability of choosing MOSTCOMMON last value for a offset. Larger the value, more probability of chossing last value (default should be 8)
 MOSTCOMNLAST= 4 #For LAva-M dataset, set this value to <=4
@@ -234,6 +234,8 @@ FUNC_TAINTMAP = dict()
 FUNC_LEAMAP = dict()
 TC_TARGET = dict()
 REL_THRESHOLD = 0.9
-MUTPROB = 0 # 20%
+MUTPROB = 5 # 20%
 BYTES_SET_THRESHOLD = 20
-TRY_MUTATE = 1000
+TRY_MUTATE = 200
+NON_CRASH_RET_CODES= [0,130]
+REL_BYTES_MAP = dict()

@@ -31,5 +31,5 @@ for l in out2.split(b"\n"):
 
 cmd = ["rm" , "tmplog2"]
 subprocess.run(cmd)
-#print(bugs)
+print(bugs)
 print(len(bugs))

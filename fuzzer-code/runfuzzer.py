@@ -91,7 +91,7 @@ def sha1OfFile(filepath):
         return hashlib.sha1(f.read()).hexdigest()
 
 def bbdict(fn):
-    with open(config.BBOUT,"r") as bbFD:
+    with open(fn,"r") as bbFD:
        bb = {}
        for ln in bbFD:
            if "funclist" in ln:
@@ -643,7 +643,7 @@ def dry_run():
             gau.die("looks like we already got a crash!!")
         config.GOODBB |= set(bbs.keys())
         iln = os.path.getsize(tfl)
-        gau.fitnesCal2(bbs, fl, iln)
+        gau.fitnesCal2(bbs, fl, iln, retc)
     print "[*] Finished good inputs (%d)"%(len(config.GOODBB),)
     #now lets run SUT of probably invalid files. For that we need to create them first.
     print "[*] Starting bad inputs.."
@@ -920,9 +920,10 @@ def main():
     keepslide=3
     keepfilenum=config.BESTP
     config.SEENBB.clear()#initialize set of BB seen so far, which is 0
-    del config.SPECIALENTRY[:]
+    #del config.SPECIALENTRY[:]
     todelete=set()#temp set to keep file names that will be deleted in the special folder
     check_timeout()
+    print "SEENBB len : ",len(config.SEENBB)
     while True:
         #print "[**] Generation %d\n***********"%(genran,)
         del config.TEMPTRACE[:]
@@ -968,7 +969,7 @@ def main():
               if per_gen_fnum % 10 ==0:
                   print "[**] Gen: %d. Executed %d of %d.**"%(genran,per_gen_fnum,config.POPSIZE)
               if config.BBWEIGHT == True: #True by default
-                  fitnes[fl]=gau.fitnesCal2(bbs,fl,iln)
+                  fitnes[fl]=gau.fitnesCal2(bbs,fl,iln, retc)
               else:
                   fitnes[fl]=gau.fitnesNoWeight(bbs,fl,iln)
               execs+=1
@@ -980,6 +981,7 @@ def main():
                   todelete.clear()
                   form_bitvector2(bbs,fl,config.BBFORPRUNE,config.SPECIALBITVECTORS)
                   shutil.copy(tfl,config.SPECIAL)
+                  '''
                   config.SPECIALENTRY.append(fl)
                   for sfl,bitv in config.SPECIALBITVECTORS.iteritems():
                       if sfl == fl:
@@ -993,20 +995,21 @@ def main():
                               del config.TAINTMAP[sfl]
                   for ele in todelete:
                       del config.SPECIALBITVECTORS[ele]
+                  '''
 
               if retc not in config.NON_CRASH_RET_CODES:
                   #print "[*]Error code is %d"%(retc,)
                   efd.write("%s: %d\n"%(tfl, retc))
                   efd.flush()
                   os.fsync(efd)
-                  tmpHash=sha1OfFile(config.CRASHFILE)
-                  if tmpHash not in crashHash:
-                      crashHash.append(tmpHash)
-                      tnow=datetime.now().isoformat().replace(":","-")
-                      nf="%s-%s.%s"%(progname,tnow,gau.splitFilename(fl)[1])
-                      npath=os.path.join("outd/crashInputs",nf)
-                      shutil.copyfile(tfl,npath)
-                      config.CRASHIN.add(fl)
+                  #tmpHash=sha1OfFile(config.CRASHFILE)
+                  #if tmpHash not in crashHash:
+                  #crashHash.append(tmpHash)
+                  tnow=datetime.now().isoformat().replace(":","-")
+                  nf="%s-%s.%s"%(progname,tnow,gau.splitFilename(fl)[1])
+                  npath=os.path.join("outd/crashInputs",nf)
+                  shutil.copyfile(tfl,npath)
+                  config.CRASHIN.add(fl)
                   if config.STOPONCRASH == True:
                       #efd.close()
                       crashhappend=True

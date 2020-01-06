@@ -802,7 +802,7 @@ def main():
     keepslide=3
     keepfilenum=config.BESTP
     config.SEENBB.clear()#initialize set of BB seen so far, which is 0
-    del config.SPECIALENTRY[:]
+    #del config.SPECIALENTRY[:]
     todelete=set()#temp set to keep file names that will be deleted in the special folder
     check_timeout()
     while True:
@@ -883,17 +883,16 @@ def main():
                     efd.write("%s: %d\n"%(tfl, retc))
                     efd.flush()
                     os.fsync(efd)
-                    tmpHash=sha1OfFile(config.CRASHFILE)
-                    if tmpHash not in crashHash:
-                            crashHash.append(tmpHash)
-                            tnow=datetime.now().isoformat().replace(":","-")
-                            nf="%s-%s.%s"%(progname,tnow,gau.splitFilename(fl)[1])
-                            npath=os.path.join("outd/crashInputs",nf)
-                            shutil.copyfile(tfl,npath)
-                            if SPECIALADDED==False:
-                                shutil.copy(tfl,config.SPECIAL)
-                                
-                            config.CRASHIN.add(fl)
+                    #tmpHash=sha1OfFile(config.CRASHFILE)
+                    #if tmpHash not in crashHash:
+                    #crashHash.append(tmpHash)
+                    tnow=datetime.now().isoformat().replace(":","-")
+                    nf="%s-%s.%s"%(progname,tnow,gau.splitFilename(fl)[1])
+                    npath=os.path.join("outd/crashInputs",nf)
+                    shutil.copyfile(tfl,npath)
+                    if SPECIALADDED==False:
+                        shutil.copy(tfl,config.SPECIAL)
+                        config.CRASHIN.add(fl)
                     if config.STOPONCRASH == True:
                         #efd.close()
                         crashhappend=True

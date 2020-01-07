@@ -81,17 +81,15 @@ def run(cmd):
     proc = subprocess.Popen(" ".join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)    
     stdout, stderr = proc.communicate()
     if config.LAVA == True and (b"Successfully triggered bug " in stdout):
-      '''
       lava_code = 0
       for l in stdout.split(b"\n"):
         if l[0:5] == b"Succe":
           lava_code = int(l.split(b" ")[3][:-1])
-          break
-      if lava_code != 0 and lava_code not in config.LAVA_CRASH:
-        config.LAVA_CRASH.add(lava_code)
-        return -2
-      '''
-      return -1
+          if lava_code in config.LAVA_CRASH:
+            return -3000
+          else:
+            config.LAVA_CRASH.add(lava_code)
+            return -1
     #print "[*] Run complete..\n"
     #print "## RC %d"%proc.returncode
     return proc.returncode # Note: the return is subtracted from 128 to make it compatible with the python Popen return code. Earlier, we were not using the SHELL with Popen.

@@ -80,7 +80,17 @@ def run(cmd):
     #print "[*] Just about to run ", cmd
     proc = subprocess.Popen(" ".join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)    
     stdout, stderr = proc.communicate()
-    if b"Successfully triggered bug " in stdout:
+    if config.LAVA == True and (b"Successfully triggered bug " in stdout):
+      '''
+      lava_code = 0
+      for l in stdout.split(b"\n"):
+        if l[0:5] == b"Succe":
+          lava_code = int(l.split(b" ")[3][:-1])
+          break
+      if lava_code != 0 and lava_code not in config.LAVA_CRASH:
+        config.LAVA_CRASH.add(lava_code)
+        return -2
+      '''
       return -1
     #print "[*] Run complete..\n"
     #print "## RC %d"%proc.returncode
@@ -179,7 +189,7 @@ def form_bitvector2(bbdict, name, source, dest):
 def calculate_error_bb():
     ''' this function calculates probably error handling bbs. the heuristic is:
     if a bb is appearing N% of the traces and it is not in the traces of valid inputs, it indicates a error handling bb.'''
-    erfd=open("errorbb.txt",'w')
+    erfd=open("errorbb.out",'w')
     perc=(config.BBPERCENT/100)*config.POPSIZE
     sn=len(config.BBSEENVECTOR)
     tbv=BV.BitVector(size=sn)
@@ -923,7 +933,6 @@ def main():
     #del config.SPECIALENTRY[:]
     todelete=set()#temp set to keep file names that will be deleted in the special folder
     check_timeout()
-    print "SEENBB len : ",len(config.SEENBB)
     while True:
         #print "[**] Generation %d\n***********"%(genran,)
         del config.TEMPTRACE[:]
@@ -975,13 +984,12 @@ def main():
               execs+=1
               #let us prune the inputs(if at all), whose trace is subset of the new input just got executed.
               SPECIALADDED= False
-              if config.GOTSPECIAL==True and (retc in config.NON_CRASH_RET_CODES) :
+              if config.GOTSPECIAL==True : #and (retc in config.NON_CRASH_RET_CODES) :
                   SPECIALCHANGED=True
                   SPECIALADDED= True
                   todelete.clear()
                   form_bitvector2(bbs,fl,config.BBFORPRUNE,config.SPECIALBITVECTORS)
                   shutil.copy(tfl,config.SPECIAL)
-                  '''
                   config.SPECIALENTRY.append(fl)
                   for sfl,bitv in config.SPECIALBITVECTORS.iteritems():
                       if sfl == fl:
@@ -995,9 +1003,8 @@ def main():
                               del config.TAINTMAP[sfl]
                   for ele in todelete:
                       del config.SPECIALBITVECTORS[ele]
-                  '''
 
-              if retc not in config.NON_CRASH_RET_CODES:
+              if retc not in config.NON_CRASH_RET_CODES: #(config.LAVA and retc == -2) or ((not config.LAVA) and (retc not in config.NON_CRASH_RET_CODES)):
                   #print "[*]Error code is %d"%(retc,)
                   efd.write("%s: %d\n"%(tfl, retc))
                   efd.flush()

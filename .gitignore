@@ -53,4 +53,4 @@ libdft64/tools/junk.*
 fuzzer-code/env
 fuzzer-code/vutemp
 fuzzer-code/logs
-#fuzzer-code/crash.bin
+fuzzer-code/crash.bin

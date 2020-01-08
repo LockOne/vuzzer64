@@ -721,6 +721,11 @@ def main():
         os.mkdir(config.INTER)
     except OSError:
         gau.emptyDir(config.INTER)
+
+    try:
+        os.mkdir(config.LOGS)
+    except OSError:
+        gau.emptyDir(config.LOGS)
    #############################################################################
     #let us get the base address of the main executable.
     ifiles=os.listdir(config.INITIALD)
@@ -770,12 +775,12 @@ def main():
     lastfit=0
     
     config.CRASHIN.clear()
-    stat=open("stats.log",'w')
+    stat=open(os.path.join(config.LOGS,"stats.log"),'w')
     stat.write("**** Fuzzing started at: %s ****\n"%(datetime.now().isoformat('+'),))
     stat.write("**** Initial BB for seed inputs: %d ****\n"%(gbb,))
     stat.flush()
     os.fsync(stat.fileno())
-    stat.write("Genaration\t MINfit\t MAXfit\t AVGfit MINlen\t Maxlen\t AVGlen\t #BB\t AppCov\t AllCov\n")
+    stat.write("Genaration\t MINfit\t MAXfit\t AVGfit MINlen\t Maxlen\t AVGlen\t #BB\t AppCov\t AllCov\t Crash\n")
     stat.flush()
     os.fsync(stat.fileno())
     config.START_TIME=time.time()
@@ -913,7 +918,7 @@ def main():
         appcov,allcov=gau.calculateCov()
         tnow=datetime.now().isoformat().replace(":","-")
         #stat.write("\t%d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %s\n"%(genran,min(fitscore),maxfit,avefit,mnlen,mxlen,avlen,len(config.cPERGENBB),appcov,allcov,tnow))
-        stat.write("\t%d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %s\n"%(genran,min(fitscore),maxfit,avefit,mnlen,mxlen,avlen,len(config.SEENBB),appcov,allcov,tnow))
+        stat.write("\t%d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t %s\t %d\n"%(genran,min(fitscore),maxfit,avefit,mnlen,mxlen,avlen,len(config.SEENBB),appcov,allcov,tnow, len(config.CRASHIN)))
         stat.flush()
         os.fsync(stat.fileno())
         print "[*] Wrote to stat.log\n"

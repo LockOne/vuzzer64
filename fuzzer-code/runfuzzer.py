@@ -80,9 +80,17 @@ def run(cmd):
     #print "[*] Just about to run ", cmd
     proc = subprocess.Popen(" ".join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)	
     stdout, stderr = proc.communicate()
+    if config.LAVA == True and (b"Successfully triggered bug " in stdout):
+      for l in stdout.split(b"\n"):
+        if l[0:5] == b"Succe":
+          lava_code = int(l.split(b" ")[3][:-1])
+          if lava_code not in config.LAVA_CRASH:
+            config.LAVA_CRASH.add(lava_code)
+            return -1
+      return -3000
     #print "[*] Run complete..\n"
     #print "## RC %d"%proc.returncode
-    return 128-proc.returncode # Note: the return is subtracted from 128 to make it compatible with the python Popen return code. Earlier, we were not using the SHELL with Popen.
+    return proc.returncode # Note: the return is subtracted from 128 to make it compatible with the python Popen return code. Earlier, we were not using the SHELL with Popen.
 
 def sha1OfFile(filepath):
     with open(filepath, 'rb') as f:
@@ -557,7 +565,7 @@ def dry_run():
         except:
             gau.die("can not open our own input %s!"%(tfl,))
         (bbs,retc)=execute(tfl)
-        if retc < 0:
+        if retc not in config.NON_CRASH_RET_CODES:
             print "Signal: %d"% (retc,)
             gau.die("looks like we already got a crash!!")
         config.GOODBB |= set(bbs.keys())
@@ -578,7 +586,7 @@ def dry_run():
         for fl in dfiles:
             tfl=os.path.join(config.INPUTD,fl)
             (bbs,retc)=execute(tfl)
-            if retc < 0:
+            if retc not in config.NON_CRASH_RET_CODES:
                 print "Signal: %d"% (retc,)
                 gau.die("looks like we already got a crash!!")
             tempbad.append(set(bbs.keys()) - config.GOODBB)
@@ -820,7 +828,7 @@ def main():
         config.cPERGENBB.clear()
         config.GOTSTUCK=False
  
-        if config.ERRORBBON == True:
+        if False : #config.ERRORBBON == True:
             if genran > config.GENNUM/5:
                 bbslide = max(bbslide,config.GENNUM/20)
                 keepslide=max(keepslide,config.GENNUM/100)
@@ -878,7 +886,7 @@ def main():
                         del config.SPECIALBITVECTORS[ele]
                     
  
-                if retc < 0 and retc != -2:
+                if retc not in config.NON_CRASH_RET_CODES:
                     #print "[*]Error code is %d"%(retc,)
                     efd.write("%s: %d\n"%(tfl, retc))
                     efd.flush()

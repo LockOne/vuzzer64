@@ -85,11 +85,10 @@ def run(cmd):
       for l in stdout.split(b"\n"):
         if l[0:5] == b"Succe":
           lava_code = int(l.split(b" ")[3][:-1])
-          if lava_code in config.LAVA_CRASH:
-            return -3000
-          else:
+          if lava_code not in config.LAVA_CRASH:
             config.LAVA_CRASH.add(lava_code)
             return -1
+      return -3000
     #print "[*] Run complete..\n"
     #print "## RC %d"%proc.returncode
     return proc.returncode # Note: the return is subtracted from 128 to make it compatible with the python Popen return code. Earlier, we were not using the SHELL with Popen.
@@ -193,6 +192,7 @@ def calculate_error_bb():
     tbv=BV.BitVector(size=sn)
     tbv[-1]=1
     for i in range(sn):
+        print "[*] cal error bb ",i,"/",sn
         tbv=tbv>>1
         for tr in config.TEMPTRACE:
             count =0
@@ -729,13 +729,15 @@ def run_error_bb(pt):
         #if retc < 0:
         #    print "[*] crashed while executing %s"%(fl,)
         #    gau.die("Bye...")
+        print "[*] form bitvector of ",fl
         form_bitvector(bbs)
+    print "[*] start calculateing error bb"
     calculate_error_bb()
 def copy_files(src, dest,num):
-        files =random.sample(os.listdir(src),num)
-        for fl in files:
-                tfl=os.path.join(src,fl)
-                shutil.copy(tfl,dest)
+    files = random.sample(os.listdir(src),num)
+    for fl in files:
+        tfl=os.path.join(src,fl)
+        shutil.copy(tfl,dest)
 def conditional_copy_files(src, dest,num):
     #count = 0;
     #tempbuf=set()
@@ -866,7 +868,7 @@ def main():
         print"[*]: cALLBB is not initialized. something is wrong!!\n"
         raise SystemExit(1)
 
-    if config.PTMODE:
+    if config.PTMODE: #false
         pt = simplept.simplept()
     else:
         pt = None
@@ -945,7 +947,7 @@ def main():
         config.cPERGENBB.clear()
         config.GOTSTUCK=False
  
-        if config.ERRORBBON == True:
+        if  False: #config.ERRORBBON == True:
             if genran > config.GENNUM/5:
                 bbslide = max(bbslide,config.GENNUM/20)
                 keepslide=max(keepslide,config.GENNUM/100)
@@ -954,7 +956,7 @@ def main():
             if 0 < genran < config.GENNUM/5 and genran%keepslide == 0:
                 copy_files(config.INPUTD,config.KEEPD,keepfilenum)
                 
-        #lets find out some of the error handling BBs
+            #lets find out some of the error handling BBs
             if  genran > 40 and genran % bbslide==0:
                 stat.write("\n**** Error BB cal started ****\n")
                 stat.flush()

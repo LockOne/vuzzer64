@@ -1004,8 +1004,7 @@ def main():
                   for ele in todelete:
                       del config.SPECIALBITVECTORS[ele]
 
-              if retc not in config.NON_CRASH_RET_CODES: #(config.LAVA and retc == -2) or ((not config.LAVA) and (retc not in config.NON_CRASH_RET_CODES)):
-                  #print "[*]Error code is %d"%(retc,)
+              if retc not in config.NON_CRASH_RET_CODES: 
                   efd.write("%s: %d\n"%(tfl, retc))
                   efd.flush()
                   os.fsync(efd)
@@ -1016,6 +1015,8 @@ def main():
                   nf="%s-%s.%s"%(progname,tnow,gau.splitFilename(fl)[1])
                   npath=os.path.join("outd/crashInputs",nf)
                   shutil.copyfile(tfl,npath)
+                  if SPECIALADDED == False:
+                    shutil.copy(tfl,config.SPECIAL)
                   config.CRASHIN.add(fl)
                   if config.STOPONCRASH == True:
                       #efd.close()

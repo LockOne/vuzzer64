@@ -17,8 +17,6 @@ LOGS = os.path.join(mydir, "logs")
 # echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
 ##################
 
-# set path to Pin home where pin is found 
-PINHOME=os.getenv('PIN_ROOT', "/home/sanjay/tools/pin-2.14")  + "/pin"
 # for address reading, tell the size i.e. 32/64bit
 BIT64=True
 TIMEOUT=1200#180
@@ -91,7 +89,6 @@ IMAGELOAD="imageOffset.txt"
 
 BBCMD=["BBOUT=%s" % BBOUT, "LIBS=", "./run_bb.sh"]
 
-#PINTNTCMD=[PINHOME,"-follow_execv","-t", PINTNT,"-filename", "inputf","-stdout","0","--"]
 PINTNTCMD=["./run_taint.sh"]
 
 # IntelPT related CMD

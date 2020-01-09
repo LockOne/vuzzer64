@@ -289,7 +289,7 @@ def taint_mutate(ch, pl, ga):
     writeFile(tmpp, ''.join(chlist))
     args=config.SUT % tmpp
     retc = run(args.split(' '))
-    if retc == -3000 or retc not in config.NON_CRASH_RET_CODES:
+    if retc not in config.NON_CRASH_RET_CODES:
       return ''.join(chlist)
   print "[*] taint_mutated : ",pl," : ", str(len(rel_bytes_set))," bytes"
   return taint_based_change(''.join(chlist), pl)

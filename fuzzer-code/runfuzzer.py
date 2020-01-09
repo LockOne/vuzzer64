@@ -905,7 +905,7 @@ def main():
                     shutil.copyfile(tfl,npath)
                     if SPECIALADDED==False:
                         shutil.copy(tfl,config.SPECIAL)
-                        config.CRASHIN.add(fl)
+                    config.CRASHIN.add(fl)
                     if config.STOPONCRASH == True:
                         #efd.close()
                         crashhappend=True

@@ -288,8 +288,8 @@ def taint_mutate(ch, pl, ga):
         pass
     writeFile(tmpp, ''.join(chlist))
     args=config.SUT % tmpp
-    retc = run(args.split(' '))
-    if retc not in config.NON_CRASH_RET_CODES:
+    retc, lava_code = run(args.split(' '))
+    if retc not in config.NON_CRASH_RET_CODES and lava_code not in config.LAVA_CRASH:
       return ''.join(chlist)
   print "[*] taint_mutated : ",pl," : ", str(len(rel_bytes_set))," bytes"
   return taint_based_change(''.join(chlist), pl)

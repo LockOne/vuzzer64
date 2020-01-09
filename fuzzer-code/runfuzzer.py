@@ -80,18 +80,15 @@ def run(cmd):
     #print "[*] Just about to run ", cmd
     proc = subprocess.Popen(" ".join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)    
     stdout, stderr = proc.communicate()
+    lava_code = 0
     if config.LAVA == True and (b"Successfully triggered bug " in stdout):
-      lava_code = 0
       for l in stdout.split(b"\n"):
         if l[0:5] == b"Succe":
           lava_code = int(l.split(b" ")[3][:-1])
-          if lava_code not in config.LAVA_CRASH:
-            config.LAVA_CRASH.add(lava_code)
-            return -1
-      return -3000
+      return (-1, lava_code)
     #print "[*] Run complete..\n"
     #print "## RC %d"%proc.returncode
-    return proc.returncode # Note: the return is subtracted from 128 to make it compatible with the python Popen return code. Earlier, we were not using the SHELL with Popen.
+    return (proc.returncode, 0) # Note: the return is subtracted from 128 to make it compatible with the python Popen return code. Earlier, we were not using the SHELL with Popen.
 
 def sha1OfFile(filepath):
     with open(filepath, 'rb') as f:
@@ -215,7 +212,7 @@ def execute(tfl):
         os.unlink(config.BBOUT)
     except:
         pass
-    retc = run(runcmd)
+    retc, lava_code = run(runcmd)
     #check if loading address was changed
     #liboffsetprev=int(config.LIBOFFSETS[1],0)
     if config.LIBNUM == 2:
@@ -231,7 +228,7 @@ def execute(tfl):
     bbs = bbdict(config.BBOUT)
     if config.CLEANOUT == True:
         gau.delete_out_file(tfl)
-    return (bbs,retc)
+    return (bbs,retc,lava_code)
 
 def get_hexStr(inp):
     ''' This functions receives a hex string (0xdddddd type) and returns a string of the form \xdd\xdd..... Also, we need to take care of endianness. it it is little endian, this string needs to be reversed'''
@@ -268,10 +265,10 @@ def execute2(tfl,fl, is_initial=0):
     #pargs[pargs.index("inputf")]=fl
     #runcmd=pargs + args.split.split(' ')
     print "[*] Executing: "," ".join(runcmd)
-    retc = run(runcmd)
+    retc, lava_code = run(runcmd)
     if config.CLEANOUT == True:
         gau.delete_out_file(tfl)
-    return retc
+    return (retc, lava_code)
 
 def extract_offsetStr(offStr,hexs,fsize):
     '''offStr : {4,5,6} hexs : 0x5a76616c  fsize : byte size of the entire file'''
@@ -644,7 +641,7 @@ def dry_run():
             f.close()
         except:
             gau.die("can not open our own input %s!"%(tfl,))
-        (bbs,retc)=execute(tfl)
+        (bbs,retc,lava_code)=execute(tfl)
         if retc not in config.NON_CRASH_RET_CODES:
             print "Signal: %d"% (retc,)
             print tfl
@@ -668,7 +665,7 @@ def dry_run():
         dfiles=os.listdir(config.INPUTD)
         for fl in dfiles:
             tfl=os.path.join(config.INPUTD,fl)
-            (bbs,retc)=execute(tfl)
+            (bbs,retc,lava_code)=execute(tfl)
             if retc not in config.NON_CRASH_RET_CODES :
                 print "Signal: %d"% (retc,)
                 gau.die("looks like we already got a crash!!")
@@ -725,7 +722,7 @@ def run_error_bb(pt):
     files = os.listdir(config.INPUTD)
     for fl in files:
         tfl=os.path.join(config.INPUTD,fl)
-        (bbs,retc)=execute(tfl)
+        (bbs,retc,lava_code)=execute(tfl)
         #if retc < 0:
         #    print "[*] crashed while executing %s"%(fl,)
         #    gau.die("Bye...")
@@ -974,7 +971,7 @@ def main():
               iln=os.path.getsize(tfl)
               args = (config.SUT % tfl).split(' ')
               progname = os.path.basename(args[0])
-              (bbs,retc)=execute(tfl) #count bb
+              (bbs,retc,lava_code)=execute(tfl) #count bb
               if per_gen_fnum % 10 ==0:
                   print "[**] Gen: %d. Executed %d of %d.**"%(genran,per_gen_fnum,config.POPSIZE)
               if config.BBWEIGHT == True: #True by default
@@ -1004,7 +1001,8 @@ def main():
                   for ele in todelete:
                       del config.SPECIALBITVECTORS[ele]
 
-              if retc not in config.NON_CRASH_RET_CODES: 
+              if retc not in config.NON_CRASH_RET_CODES and (lava_code not in config.LAVA_CRASH or lava_code == 0):
+                  config.LAVA_CRASH.add(lava_code)
                   efd.write("%s: %d\n"%(tfl, retc))
                   efd.flush()
                   os.fsync(efd)

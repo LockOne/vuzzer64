@@ -792,7 +792,7 @@ def main():
         pass
     shutil.copytree(config.INITIALD,config.INPUTD)
     # fisrt we get taint of the intial inputs
-    get_taint(config.INITIALD,1)
+    get_taint(config.INITIALD) #,1)
     check_timeout()
     #print "MOst common offsets and values:", config.MOSTCOMMON
     #print "Base address: %s"%config.LIBOFFSETS[0]

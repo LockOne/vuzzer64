@@ -81,7 +81,7 @@ class Command(object):
     self.cmd = cmd
     self.processs = None
     self.lava_code = 0
-  def run (timeout):
+  def run (self,timeout):
     def subrun():
       self.process = subprocess.Popen(" ".join(self.cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
       stdout,stderr = self.process.communicate()
@@ -100,7 +100,7 @@ class Command(object):
 def run(cmd):
     #print "[*] Just about to run ", cmd
     comm = Command(cmd)
-    (retc, lava_code) = comm.run()
+    (retc, lava_code) = comm.run(1200)
     if lava_code in config.LAVA_CRASH:
       return -3000
     #print "[*] Run complete..\n"

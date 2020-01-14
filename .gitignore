@@ -55,3 +55,5 @@ fuzzer-code/vutemp
 fuzzer-code/env
 fuzzer-code/crash.bin
 fuzzer-code/logs
+
+*.svg

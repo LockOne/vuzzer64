@@ -259,7 +259,7 @@ def execute2(tfl,fl, is_initial=0):
     args='\"' + args + '\"' # For cmd shell
     pargs=config.PINTNTCMD[:]
     if is_initial == 1:
-      runcmd = [pargs[0], args, fl, "0"]
+      runcmd = [pargs[0], args, fl, str(config.TIMEOUT) ] #"0"]
     else:
       runcmd = [pargs[0], args, fl, str(config.TIMEOUT)]
     #pargs[pargs.index("inputf")]=fl
@@ -668,6 +668,7 @@ def dry_run():
             (bbs,retc,lava_code)=execute(tfl)
             if retc not in config.NON_CRASH_RET_CODES :
                 print "Signal: %d"% (retc,)
+                print tfl
                 gau.die("looks like we already got a crash!!")
             tempbad.append(set(bbs.keys()) - config.GOODBB)
 

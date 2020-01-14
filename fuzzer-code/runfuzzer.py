@@ -76,21 +76,36 @@ def check_env():
             raise SystemExit(1)
         #gau.die("config.BASETMP is not mounted as tmpfs filesystem. Run: sudo mkdir /mnt/vuzzer , followed by sudo mount -t tmpfs -o size=1024M tmpfs /mnt/vuzzer")
 
+class Command(object):
+  def __init__(self, cmd):
+    self.cmd = cmd
+    self.processs = None
+    self.lava_code = 0
+  def run (timeout):
+    def subrun():
+      self.process = subprocess.Popen(" ".join(self.cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+      stdout,stderr = self.process.communicate()
+      if config.LAVA == True and (b"Successfully triggered bug " in stdout):
+        for l in stdout.split(b"\n"):
+          if l[0:5] == b"Succe":
+            self.lava_code = int(l.split(b" ")[3][:-1])
+    thread = threading.Thread(target=subrun)
+    thread.start()
+    thread.join(timeout)
+    if thread.is_alive():
+      self.process.terminate()
+      thread.join()
+    return (self.process.returncode, self.lava_code)
+
 def run(cmd):
     #print "[*] Just about to run ", cmd
-    proc = subprocess.Popen(" ".join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)	
-    stdout, stderr = proc.communicate()
-    if config.LAVA == True and (b"Successfully triggered bug " in stdout):
-      for l in stdout.split(b"\n"):
-        if l[0:5] == b"Succe":
-          lava_code = int(l.split(b" ")[3][:-1])
-          if lava_code not in config.LAVA_CRASH:
-            config.LAVA_CRASH.add(lava_code)
-            return -1
+    comm = Command(cmd)
+    (retc, lava_code) = comm.run()
+    if lava_code in config.LAVA_CRASH:
       return -3000
     #print "[*] Run complete..\n"
     #print "## RC %d"%proc.returncode
-    return proc.returncode # Note: the return is subtracted from 128 to make it compatible with the python Popen return code. Earlier, we were not using the SHELL with Popen.
+    return retc # Note: the return is subtracted from 128 to make it compatible with the python Popen return code. Earlier, we were not using the SHELL with Popen.
 
 def sha1OfFile(filepath):
     with open(filepath, 'rb') as f:

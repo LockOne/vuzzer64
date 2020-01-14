@@ -226,7 +226,7 @@ FLASK=False
 TOTAL_TIMEOUT = 24 * 60 * 60
 START_TIME = 0
 
-LAVA=True
+LAVA=False
 LAVA_CRASH= set()
 NON_CRASH_RET_CODES=[0,1,130,-3000]
 LOGS = os.path.join(mydir, "logs")

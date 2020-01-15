@@ -246,7 +246,8 @@ def taint_mutate(ch, pl, ga):
       if pl in config.FUNC_LEAMAP and target_func in config.FUNC_LEAMAP[pl]:
         target_func_bytes_set |= config.FUNC_LEAMAP[pl][target_func]
       if target_func not in config.FUNC_REL:
-        print "[*]", target_func, " not in config.FUNC_REL "
+        print "[*]", pl, ", ", target_func, " not in config.FUNC_REL "
+        config.FUNC_REL[target_func][target_func] = 1
         return taint_based_change(ga.mutate(ch, pl),pl)
       if len(target_func_bytes_set) <= config.BYTES_SET_THRESHOLD:
         rel_func_list = []

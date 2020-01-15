@@ -78,7 +78,7 @@ def check_env():
 
 def run(cmd):
     #print "[*] Just about to run ", cmd
-    proc = subprocess.Popen(" ".join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)    
+    proc = subprocess.Popen(" ".join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = proc.communicate()
     lava_code = 0
     if config.LAVA == True and (b"Successfully triggered bug " in stdout):
@@ -86,9 +86,7 @@ def run(cmd):
         if l[0:5] == b"Succe":
           lava_code = int(l.split(b" ")[3][:-1])
       return (-1, lava_code)
-    #print "[*] Run complete..\n"
-    #print "## RC %d"%proc.returncode
-    return (proc.returncode, 0) # Note: the return is subtracted from 128 to make it compatible with the python Popen return code. Earlier, we were not using the SHELL with Popen.
+    return (proc.returncode, lava_code)
 
 def sha1OfFile(filepath):
     with open(filepath, 'rb') as f:
@@ -259,7 +257,7 @@ def execute2(tfl,fl, is_initial=0):
     args='\"' + args + '\"' # For cmd shell
     pargs=config.PINTNTCMD[:]
     if is_initial == 1:
-      runcmd = [pargs[0], args, fl, str(config.TIMEOUT) ] #"0"]
+      runcmd = [pargs[0], args, fl, "0"]
     else:
       runcmd = [pargs[0], args, fl, str(config.TIMEOUT)]
     #pargs[pargs.index("inputf")]=fl
@@ -899,7 +897,7 @@ def main():
         pass
     shutil.copytree(config.INITIALD,config.INPUTD)
     # fisrt we get taint of the intial inputs
-    get_taint(config.INITIALD,1)
+    get_taint(config.INITIALD) #,1)
     check_timeout()
     '''
     print "TAINTMAP : \n"

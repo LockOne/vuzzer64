@@ -57,3 +57,4 @@ fuzzer-code/crash.bin
 fuzzer-code/logs
 
 *.svg
+subjects/

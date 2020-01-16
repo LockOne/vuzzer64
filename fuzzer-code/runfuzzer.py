@@ -263,9 +263,11 @@ def get_non_empty(mat, num):
     #mi = 1000000
     while ind < num+9:
 	# I have changed this
+      try:
         if mat.group(ind) !='':
             #mi = min(mi, int(mat.group(ind)))
-	    return mat.group(ind)
+          return mat.group(ind)
+      finally:
         ind +=1
     #if mi == 1000000:
     return -1

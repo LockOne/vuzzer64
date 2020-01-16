@@ -86,6 +86,9 @@ def run(cmd):
         if l[0:5] == b"Succe":
           lava_code = int(l.split(b" ")[3][:-1])
       return (-1, lava_code)
+    tmpo = open("run_bb.out", "w")
+    tmpo.write(stderr.decode())
+    tmpo.close()
     return (proc.returncode, lava_code)
 
 def sha1OfFile(filepath):

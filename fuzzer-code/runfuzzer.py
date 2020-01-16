@@ -77,7 +77,7 @@ def check_env():
         #gau.die("config.BASETMP is not mounted as tmpfs filesystem. Run: sudo mkdir /mnt/vuzzer , followed by sudo mount -t tmpfs -o size=1024M tmpfs /mnt/vuzzer")
 
 def run(cmd):
-    #print "[*] Just about to run ", cmd
+    #print "[*] Just about to run ", ' '.join(cmd)
     proc = subprocess.Popen(" ".join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = proc.communicate()
     lava_code = 0
@@ -290,10 +290,12 @@ def get_non_empty(mat, num):
     #mi = 1000000
     while ind < num+9:
     # I have changed this
-        if mat.group(ind) !='':
+        try:
+          if mat.group(ind) !='':
             #mi = min(mi, int(mat.group(ind)))
             return mat.group(ind)
-        ind +=1
+        finally:
+          ind +=1
     #if mi == 1000000:
     return -1
     #return str(mi)
@@ -319,7 +321,7 @@ def read_lea(fl):
           else:
             rr=mat.group(10)
         except:
-            if "baseidx 0x" not in ln:
+            if "baseidx" not in ln:
               cur_func = ln.strip()
               if cur_func not in func_leamap:
                 func_leamap[cur_func] = set()

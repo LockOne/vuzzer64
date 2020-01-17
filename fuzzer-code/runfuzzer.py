@@ -87,7 +87,7 @@ def run(cmd):
           lava_code = int(l.split(b" ")[3][:-1])
       return (-1, lava_code)
     tmpo = open("run_bb.out", "w")
-    tmpo.write(stderr.decode())
+    tmpo.write(stderr)
     tmpo.close()
     return (proc.returncode, lava_code)
 

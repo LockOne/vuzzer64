@@ -105,6 +105,7 @@ def bbdict(fn):
            bbadr=int(tLine[0],0)
            bbfr=int(tLine[1],0)
            bb[bbadr] = bbfr
+       '''
        funclist = []
        for ln in bbFD:
          funcname, funcoffset = tuple(ln.strip().split(","))
@@ -114,21 +115,22 @@ def bbdict(fn):
          config.OFFSET_FUNCNAME[long(funcoffset[2:], 16)] = funcname
        for fn1 in funclist:
          for fn2 in funclist:
-           if fn1 in config.FUNC_REL:
-             if fn2 in config.FUNC_REL[fn1]:
-               config.FUNC_REL[fn1][fn2] += 1
+           if fn1 in config.FUNC_EXEC:
+             if fn2 in config.FUNC_EXEC[fn1]:
+               config.FUNC_EXEC[fn1][fn2] += 1
              else:
-               config.FUNC_REL[fn1][fn2] = 1
+               config.FUNC_EXEC[fn1][fn2] = 1
            else:
-             config.FUNC_REL[fn1] = {fn2 : 1}
+             config.FUNC_EXEC[fn1] = {fn2 : 1}
 
-           if fn2 in config.FUNC_REL:
-             if fn1 in config.FUNC_REL[fn2]:
-               config.FUNC_REL[fn2][fn1] += 1
+           if fn2 in config.FUNC_EXEC:
+             if fn1 in config.FUNC_EXEC[fn2]:
+               config.FUNC_EXEC[fn2][fn1] += 1
              else:
-               config.FUNC_REL[fn2][fn1] = 1
+               config.FUNC_EXEC[fn2][fn1] = 1
            else:
-             config.FUNC_REL[fn2] = {fn1 : 1}
+             config.FUNC_EXEC[fn2] = {fn1 : 1}
+       '''
        return bb
 
 
@@ -353,21 +355,21 @@ def read_func(fl):
       config.OFFSET_FUNCNAME[long(funcoffset)] = funcname
     for fn1 in funclist:
       for fn2 in funclist:
-        if fn1 in config.FUNC_REL:
-          if fn2 in config.FUNC_REL[fn1]:
-            config.FUNC_REL[fn1][fn2] += 1
+        if fn1 in config.FUNC_EXEC:
+          if fn2 in config.FUNC_EXEC[fn1]:
+            config.FUNC_EXEC[fn1][fn2] += 1
           else:
-            config.FUNC_REL[fn1][fn2] = 1
+            config.FUNC_EXEC[fn1][fn2] = 1
         else:
-          config.FUNC_REL[fn1] = {fn2 : 1}
+          config.FUNC_EXEC[fn1] = {fn2 : 1}
 
-        if fn2 in config.FUNC_REL:
-          if fn1 in config.FUNC_REL[fn2]:
-            config.FUNC_REL[fn2][fn1] += 1
+        if fn2 in config.FUNC_EXEC:
+          if fn1 in config.FUNC_EXEC[fn2]:
+            config.FUNC_EXEC[fn2][fn1] += 1
           else:
-            config.FUNC_REL[fn2][fn1] = 1
+            config.FUNC_EXEC[fn2][fn1] = 1
         else: 
-          config.FUNC_REL[fn2] = {fn1 : 1}
+          config.FUNC_EXEC[fn2] = {fn1 : 1}
     funcFD.close()
 
 def check_timeout():
@@ -573,7 +575,7 @@ def get_taint(dirin, is_initial=0):
         gau.die("pintool terminated with error 255 on input %s"%(pfl,))
       config.TAINTMAP[fl]=read_taint(pfl, fl)
       config.LEAMAP[fl]=read_lea(fl)          
-      read_func(fl)
+      #read_func(fl)
 
     if config.MOSTCOMFLAG==False: #False by default
         #print "computing MOSTCOM calculation..."
@@ -703,10 +705,20 @@ def dry_run():
     return len(config.GOODBB),len(config.ERRORBBALL)
 
 
+def get_rel_funcs():
+    for ff in config.REL_FUNC_FILES:
+      fi = open(ff, "r")
+      rel_funcs = pickle.load(fi)
+      for func in rel_funcs:
+        if func in config.REL_FUNC:
+          config.REL_FUNC[func].update(rel_funcs[func])
+        else:
+          config.REL_FUNC[func] = rel_funcs[func]
+      fi.close()
 
-def print_func_rel():
+def print_func_exec():
     ff = open(os.path.join(config.LOGS, "funcrel.csv"), "w")
-    fl = config.FUNC_REL.keys()
+    fl = config.FUNC_EXEC.keys()
     ff.write(",")
     for f1 in fl:
       ff.write(f1+",")
@@ -714,10 +726,10 @@ def print_func_rel():
     for f1 in fl:
       ff.write(f1 +",")
       for f2 in fl:
-        if f2 not in config.FUNC_REL[f1]:
+        if f2 not in config.FUNC_EXEC[f1]:
           ff.write("0,")
         else:
-          ff.write(str(config.FUNC_REL[f1][f2]) + "," )
+          ff.write(str(config.FUNC_EXEC[f1][f2]) + "," )
       ff.write("\n")
     ff.close()
     
@@ -786,6 +798,7 @@ def main():
     parser.add_argument('-l','--libnum', help='Nunber of binaries to monitor (only application or used libraries)',required=False, default=1)
     parser.add_argument('-o','--offsets',help='base-address of application and library (if used), separated by comma', required=False, default='0x00000000')
     parser.add_argument('-b','--libname',help='library name to monitor',required=False, default='#')
+    parser.add_argument('-f','--func', help='rel func file got from ghiddra', required=False, default='')
     args = parser.parse_args()
     config.SUT=args.sut
     config.INITIALD=os.path.join(config.INITIALD, args.inputd)
@@ -794,6 +807,7 @@ def main():
     config.LIBPICKLE=[w for w in args.weight.split(',')]
     config.NAMESPICKLE=[n for n in args.name.split(',')]
     config.LIBOFFSETS=[o for o in args.offsets.split(',')]
+    config.REL_FUNC_FILES=[f for f in args.func.split(',')]
     config.LIBS=args.libname
     ih=config.BBCMD.index("LIBS=") # this is just to find the index of the placeholder in BBCMD list to replace it with the libname
     config.BBCMD[ih]="LIBS=%s" % args.libname
@@ -877,6 +891,8 @@ def main():
         gbb,bbb=dry_run()
     else:
         gbb=0
+
+    get_rel_funcs()
    # gau.die("dry run over..")
     import timing
     #selftest()
@@ -1055,7 +1071,7 @@ def main():
         if len(os.listdir(config.SPECIAL))>0 and SPECIALCHANGED == True:
             if len(os.listdir(config.SPECIAL))<config.NEWTAINTFILES: #The # of new generated special TC is not big
                 get_taint(config.SPECIAL)
-                #print_func_rel()
+                #print_func_exec()
             else:
                 #take only 100 files in SPEICAL, perform taint analysis on it.
                 try:

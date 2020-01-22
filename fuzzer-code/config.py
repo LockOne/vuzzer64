@@ -48,7 +48,7 @@ LIBNUM=1
 
 # set path of each library's saved pickle files (two files for each lib) that will be read by the fuzzer. This is set in a list, whose length should be equal to LIBNUM. We have created two separate variables to mention these files. 1st one if for BB weights and 2nd one is for strings found in binaries.
 LIBPICKLE=[]
-
+REL_FUNC_FILES=[]
 
 NAMESPICKLE=[]
 
@@ -222,7 +222,7 @@ MAXINPUTLEN=50000 # this is the limit (50kb) on length of the input. After that 
 
 FLASK=False
 
-FUNC_REL = dict()
+FUNC_EXEC = dict()
 START_TIME = 0
 TOTAL_TIMEOUT = 24 * 60 * 60
 BB_FUNC_MAP = dict()
@@ -233,8 +233,9 @@ TC_TARGET = dict()
 REL_THRESHOLD = 0.9
 MUTPROB = 5 # 20%
 BYTES_SET_THRESHOLD = 20
-TRY_MUTATE = 1
+TRY_MUTATE = 200
 NON_CRASH_RET_CODES= [0, 1, 130, 253, 127, -3000]
 REL_BYTES_MAP = dict()
 LAVA=True
 LAVA_CRASH = set()
+REL_FUNC= dict()

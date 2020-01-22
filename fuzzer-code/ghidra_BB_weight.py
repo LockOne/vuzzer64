@@ -86,6 +86,9 @@ def getWeight(function):
 
     return weight, block_weight, total
  
+def getSuccessors(function):
+    succs = function.getCalledFunctions()
+    return succs
 
 #
 def getBBScore(function):
@@ -246,6 +249,8 @@ def main():
     str_bytes=set() # set of individual bytes of the strings in the above set
     bb_weight=dict()
     bb_root = dict()
+    rel_funcs = dict()   # funcname -> set (funcname) all succs
+    func_succs = dict()  # funcname -> set(funcname) succs only
     total_bb=0 #total number of BBs analyzed
     total_func=0 # total number of functions analyzed
     global uncovered_edges
@@ -269,6 +274,7 @@ def main():
         str_full.update(temp[0])
         str_bytes.update(temp[1])
         bbscore = getBBScore(function)
+        func_succs[function.getName()] = getSuccessors(function)
         bb_weight.update(bbscore)
         for bb in bbscore:
           bb_root[bb] = (root, function.getName())
@@ -276,10 +282,21 @@ def main():
     for bb in bb_weight:
         fweight[bb-image_base]=(1.0/bb_weight[bb], bb_root[bb][0],bb_root[bb][1])
 
+    for func in func_succs:
+      if func not in rel_funcs:
+        rel_funcs[func] = set()
+      for succ in func_succs[func]:
+        rel_funcs[func].add(succ)
+        if succ not in rel_funcs:
+          rel_funcs[succ] = set()
+        rel_funcs[succ].add(func)
+
     str_final=[str_full, str_bytes]
     path,file_name=os.path.split(currentProgram.getExecutablePath())
+    func_file = file_name + ".func"
     str_file=file_name + '.names'
     bb_file=file_name + '.pkl'
+    func_path = os.path.join(path, func_path)
     str_path=os.path.join(path,str_file)
     bb_path=os.path.join(path,bb_file)
     str_fd=open(str_path, 'w')
@@ -288,6 +305,9 @@ def main():
     bb_fd=open(bb_path,'w')
     pickle.dump(fweight,bb_fd)
     bb_fd.close()
+    func_fd = open(func_path,"w")
+    pickle.dump(rel_funcs, func_fd)
+    func_fd.close()
 
     stop=timeit.default_timer()
     printf("[*] Total time: %5.5f", stop-start)

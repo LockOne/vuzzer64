@@ -86,6 +86,7 @@ def run(cmd):
         if l[0:5] == b"Succe":
           lava_code = int(l.split(b" ")[3][:-1])
           if lava_code not in config.LAVA_CRASH:
+            config.LAVA_CRASH.add(lava_code)
             return -1
       return -3000
     #print "[*] Run complete..\n"

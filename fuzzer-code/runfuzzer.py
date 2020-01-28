@@ -339,6 +339,7 @@ def read_lea(fl):
           func_leamap[cur_func].update(toff)
           offsets.add(toff[0])
     config.FUNC_LEAMAP[fl] = func_leamap
+    leaFD.close()
     return offsets.copy()
 
 def read_func(fl):

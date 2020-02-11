@@ -70,6 +70,7 @@ ALLCMPOP=False#True
  
 # this is a directorty for internal use. Don;t change this.
 KEEPD=os.path.join(BASETMP,"keep/")
+KEEPALLD=os.path.join(BASETMP,"keepall/")
 #set the directory path whre initial files are kept. this directory is not changed during fuzzing.
 
 #set if dry run is required
@@ -234,7 +235,7 @@ REL_THRESHOLD = 0.9
 MUTPROB = 5 # 20%
 BYTES_SET_THRESHOLD = 20
 TRY_MUTATE = 200
-NON_CRASH_RET_CODES= [0, 1, 130, 253, 127, -3000]
+NON_CRASH_RET_CODES= [0]
 REL_BYTES_MAP = dict()
 LAVA=True
 LAVA_CRASH = set()

@@ -703,7 +703,13 @@ def main():
     except OSError:
         pass
     os.mkdir(config.KEEPD)
-    
+
+    try:
+        shutil.rmtree(config.KEEPALLD)
+    except OSError:
+        pass
+    os.mkdir(config.KEEPALLD)   
+
     try:
         os.mkdir("outd")
     except OSError:

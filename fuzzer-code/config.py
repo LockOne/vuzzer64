@@ -70,6 +70,7 @@ ALLCMPOP=False#True
  
 # this is a directorty for internal use. Don;t change this.
 KEEPD=os.path.join(BASETMP,"keep/")
+KEEPALLD=os.path.join(BASETMP,"keepall/")
 #set the directory path whre initial files are kept. this directory is not changed during fuzzing.
 
 #set if dry run is required

@@ -367,7 +367,8 @@ def createNextGeneration3(fit,gn):
     for fl in files:
         if fl in best:
             continue
-        os.remove(os.path.join(config.INPUTD,fl))
+        shutil.move(os.path.join(config.INPUTD,fl), os.path.join(config.KEEPALLD,fl))
+        #os.remove(os.path.join(config.INPUTD,fl))
     #lets check if everything went well!!!
     if len(os.listdir(config.INPUTD))!=config.POPSIZE:
         die("Something went wrong while creating next gen inputs.. check it!")

@@ -245,12 +245,13 @@ def taint_mutate(ch, pl, ga):
         config.TC_TARGET_BAN[pl] = set()
       else : 
         for tf in config.TC_TARGET[pl]:
-          if tf not in config.TC_TARGET_BAN[pl]:
+          if tf not in config.TC_TARGET_BAN[pl] and tf in config.REL_FUNC:
             target_Func = tf
             break 
         if target_func is None:
           config.TC_TARGET_BAN[pl] = set ()
           target_func = config.TC_TARGET[pl][0]
+      if target_func not in config.REL_FUNC:
       target_func_bytes_set = set()
       if target_func not in config.FUNC_EXEC:
         print "[*]", pl, ", ", target_func, " not in config.FUNC_EXEC "

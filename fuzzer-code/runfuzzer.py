@@ -103,7 +103,7 @@ def bbdict(fn):
        for ln in bbFD:
          if flag == 0:
            if "funclist" in ln:
-             flag == 1
+             flag = 1
              funclist = []
              continue
            tLine = ln.split()

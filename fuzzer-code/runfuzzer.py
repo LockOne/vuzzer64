@@ -105,7 +105,6 @@ def bbdict(fn):
            bbadr=int(tLine[0],0)
            bbfr=int(tLine[1],0)
            bb[bbadr] = bbfr
-       '''
        funclist = []
        for ln in bbFD:
          funcname, funcoffset = tuple(ln.strip().split(","))
@@ -130,7 +129,6 @@ def bbdict(fn):
                config.FUNC_EXEC[fn2][fn1] = 1
            else:
              config.FUNC_EXEC[fn2] = {fn1 : 1}
-       '''
        return bb
 
 
@@ -211,6 +209,7 @@ def execute(tfl):
     bbs={}
     args=config.SUT % tfl
     runcmd=config.BBCMD+args.split(' ')
+    #print ' '.join(runcmd)
     try:
         os.unlink(config.BBOUT)
     except:

@@ -239,40 +239,51 @@ def taint_mutate(ch, pl, ga):
   rel_bytes_set = set()
   if pl not in config.REL_BYTES_MAP:
     if pl in config.TC_TARGET:
-      target_func = config.TC_TARGET[pl]
+      target_func = None
+      if pl not in config.TC_TARGET_BAN:
+        target_func = config.TC_TARGET[pl][0]
+        config.TC_TARGET_BAN[pl] = set()
+      else : 
+        for tf in config.TC_TARGET[pl]:
+          if tf not in config.TC_TARGET_BAN[pl]:
+            target_Func = tf
+            break 
+        if target_func is None:
+          config.TC_TARGET_BAN[pl] = set ()
+          target_func = config.TC_TARGET[pl][0]
       target_func_bytes_set = set()
-      if pl in config.FUNC_TAINTMAP and target_func in config.FUNC_TAINTMAP[pl]:
-        target_func_bytes_set |= config.FUNC_TAINTMAP[pl][target_func]
-      if pl in config.FUNC_LEAMAP and target_func in config.FUNC_LEAMAP[pl]:
-        target_func_bytes_set |= config.FUNC_LEAMAP[pl][target_func]
-      '''
       if target_func not in config.FUNC_EXEC:
         print "[*]", pl, ", ", target_func, " not in config.FUNC_EXEC "
         config.FUNC_EXEC[target_func] = dict()
         config.FUNC_EXEC[target_func][target_func] = 1
         return taint_based_change(ga.mutate(ch, pl),pl)
-      if len(target_func_bytes_set) <= config.BYTES_SET_THRESHOLD:
-        rel_func_list = []
-        target_exec = config.FUNC_EXEC[target_func][target_func]
-        for func in config.FUNC_EXEC[target_func]:
-          if config.FUNC_EXEC[target_func][func] // target_exec >= config.REL_THRESHOLD:
-            if func == target_func:
-              continue
-            rel_func_list.append(func)
-      '''
-      if target_func in config.REL_FUNC:
-        rel_funcs = config.REL_FUNC[target_func] 
-        try:
-          for func in rel_funcs:
-            if func in config.FUNC_TAINTMAP[pl]:
-              rel_bytes_set |= config.FUNC_TAINTMAP[pl][func] #union
-            if func in config.FUNC_LEAMAP[pl]:
-              rel_bytes_set |= config.FUNC_LEAMAP[pl][func]
-        except KeyError:
-          pass
+      rel_funcs = []
+      target_exec = config.FUNC_EXEC[target_func][target_func]
+      for func in config.REL_FUNC[target_func]:
+        if func not in config.FUNC_EXEC[target_func]:
+          config.FUNC_EXEC[target_func][func] = 1
+          continue
+        if config.FUNC_EXEC[target_func][func] // target_exec >= config.REL_THRESHOLD:
+          if func == target_func:
+            continue
+          rel_funcs.append(func)
+      rel_funcs = config.REL_FUNC[target_func] 
+      try:
+        for func in rel_funcs:
+          if func in config.FUNC_TAINTMAP[pl]:
+            rel_bytes_set |= config.FUNC_TAINTMAP[pl][func] #union
+          if func in config.FUNC_LEAMAP[pl]:
+            rel_bytes_set |= config.FUNC_LEAMAP[pl][func]
+      except KeyError:
+        pass
       rel_bytes_set |= target_func_bytes_set
       if len(rel_bytes_set) == 0:
-        print "[*] empty rel bytes set"
+        print "[*] Warning : empty rel bytes set :",pl
+        print "# of rel_func :",len(rel_funcs)
+        if pl not in config.TC_TARGET_BAN:
+          config.TC_TARGET_BAN[pl] = {target_func}
+        else:
+          config.TC_TARGET_BAN[pl].add(target_func)
         return taint_based_change(ga.mutate(ch, pl),pl)
       config.REL_BYTES_MAP[pl] = rel_bytes_set
     else:
@@ -551,21 +562,21 @@ def fitnesCal2(bbdict, cinput,ilen, retc):
     #bbf2.write("mean : " + str(bbsum // bbNum) + "\n")
     #bbf2.close()
     #bbf.write("func score : \n")
-    maxsum = 0
-    maxfunc = None
-    for func in func_sum:
-      tmp = func_sum[func]
-      if maxsum < tmp:
-        maxsum = tmp
-        maxfunc = func
-    if maxfunc is not None:
+    func_sum_list = []
+    for f in func_sum:
+      func_sum_list.append((f, func_sum[f]))
+    func_sum_list = sorted(func_sum_list, key=lambda x : x[1], reverse = True)
+    if len(func_sum_list) > 10:
+      func_sum_list = func_sum_list[:10]
+    func_sum_list = list(map(lambda x : config.OFFSET_FUNCNAME[x[0]], func_sum_list))
+    if len(func_sum_list) != 0:
       '''
       if maxfunc in config.OFFSET_FUNCNAME:
         bbf.write("maxfunc : " + config.OFFSET_FUNCNAME[maxfunc] + "," + str(func_sum[maxfunc]) + "\n")
       else:
         bbf.write("maxfunc : " + str(maxfunc) + "," + str(func_sum[maxfunc]) + "\n")
       '''
-      config.TC_TARGET[cinput] = config.OFFSET_FUNCNAME[maxfunc]
+      config.TC_TARGET[cinput] = func_sum_list
     #bbf.write("total score : " + str(score) + "\n")
     #bbf.close()
     del errorset

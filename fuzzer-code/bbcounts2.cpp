@@ -227,17 +227,16 @@ VOID Fini(INT32 code, VOID *v)
         //fflush(trace);
 
     }
-    //fprintf(trace, "funclist\n");
-    //for (FUNC_COUNT * fc = func_list; fc ; fc = fc -> _next){
-    //  if (fc->_count) { fprintf(trace, "%s,%s\n", fc->_name.c_str(), StringFromAddrint(fc->_addr).c_str());}
-    //}
+    fprintf(trace, "funclist\n");
+    for (FUNC_COUNT * fc = func_list; fc ; fc = fc -> _next){
+      if (fc->_count) { fprintf(trace, "%s,%s\n", fc->_name.c_str(), StringFromAddrint(fc->_addr).c_str());}
+    }
     fclose(trace);
     fclose(offsets);
     munmap(offsetmap, 18);
     close(ioffset);
 }
 
-/*
 void docount(char * counter) {*counter = 1;} 
 void Routine(RTN rtn, void *v){
   FUNC_COUNT * fc = new FUNC_COUNT;
@@ -251,7 +250,6 @@ void Routine(RTN rtn, void *v){
   RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR) docount, IARG_PTR, &(fc->_count), IARG_END);
   RTN_Close(rtn);
 }
-*/
 
 /* ===================================================================== */
 /* Print Help Message                                                    */
@@ -297,7 +295,7 @@ int main(int argc, char * argv[])
     if (PIN_Init(argc, argv)) return Usage();
     trace = fopen(KnobOutputFile.Value().c_str(), "w");
     TRACE_AddInstrumentFunction(Trace, 0);
-    //RTN_AddInstrumentFunction(Routine, NULL);
+    RTN_AddInstrumentFunction(Routine, NULL);
     /* lets add signal intercept for signal 1, 6, and 11. */
     INT32 signals[3]={1,6,11};
     for (INT32 sig=0;sig<3;sig++)

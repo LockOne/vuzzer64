@@ -144,7 +144,7 @@ ALLSTRINGS=[]# this will be populated by two sets A,B. A= set of full strings fr
 NOFFBYTES=True # this is a flag to ignore \xff\xff\xff\xff (which is -1) immediate.
 ALLBYTES=False#True # due to certain reason, i am ignoring certain bytes, eg. \x00, \xff. if we want to check them, make is True.
 # population size in each generation. Choose even number.
-POPSIZE=50 #500
+POPSIZE=500
 
 # for elitist approach, set number of best inputs to go in the next generation. Make sure that POPSIZE-BESTP is multiple of 2.
 BESTP=40
@@ -236,8 +236,8 @@ REL_THRESHOLD = 0.5
 MUTPROB = 5 # 20%
 BYTES_SET_THRESHOLD = 20
 TRY_MUTATE = 1
-NON_CRASH_RET_CODES= [0,1]
+NON_CRASH_RET_CODES= [0,1,127]
 REL_BYTES_MAP = dict()
-LAVA=True
+LAVA=False
 LAVA_CRASH = set()
 REL_FUNC= dict()

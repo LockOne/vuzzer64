@@ -98,20 +98,33 @@ def sha1OfFile(filepath):
 def bbdict(fn):
     with open(fn,"r") as bbFD:
        bb = {}
+       funclist = []
+       flag = 0
        for ln in bbFD:
+         if flag == 0:
            if "funclist" in ln:
-             break
+             flag == 1
+             funclist = []
+             continue
            tLine = ln.split()
            bbadr=int(tLine[0],0)
            bbfr=int(tLine[1],0)
            bb[bbadr] = bbfr
-       funclist = []
-       for ln in bbFD:
-         funcname, funcoffset = tuple(ln.strip().split(","))
-         if funcname in funclist:
-           continue
-         funclist.append(funcname)
-         config.OFFSET_FUNCNAME[long(funcoffset[2:], 16)] = funcname
+         else:
+           try:
+             funcname, funcoffset = tuple(ln.strip().split(","))
+           except :
+             #retry
+             funclist = []
+             config.OFFSET_FUNCNAME = dict()
+             bb = {}
+             flag = 0
+             continue
+           if funcname in funclist:
+             continue
+           funclist.append(funcname)
+           config.OFFSET_FUNCNAME[long(funcoffset[2:], 16)] = funcname
+
        for fn1 in funclist:
          for fn2 in funclist:
            if fn1 in config.FUNC_EXEC:

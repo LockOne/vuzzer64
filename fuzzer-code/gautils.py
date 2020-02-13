@@ -250,7 +250,7 @@ def taint_mutate(ch, pl, ga):
             break 
         if target_func is None:
           config.TC_TARGET_BAN[pl] = set ()
-          target_func = config.TC_TARGET[pl][0]
+          return taint_based_change(ga.mutate(ch, pl),pl)
       target_func_bytes_set = set()
       if target_func not in config.FUNC_EXEC:
         print "[*]", pl, ", ", target_func, " not in config.FUNC_EXEC "

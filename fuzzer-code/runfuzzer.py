@@ -227,7 +227,10 @@ def isNonPrintable(hexstr):
         return False
 
 def execute2(tfl,fl, is_initial=0):
-    args=config.SUT % tfl
+    if config.SUT[0] != '\\':
+      args= os.path.abspath(os.path.join(os.getcwd(), config.SUT)) % tfl
+    else:
+      args= config.SUT % tfl
     args='\"' + args + '\"' # For cmd shell
     pargs=config.PINTNTCMD[:]
     if is_initial == 1:
@@ -236,8 +239,7 @@ def execute2(tfl,fl, is_initial=0):
       runcmd = [pargs[0], args, fl, str(config.TIMEOUT)]
     #pargs[pargs.index("inputf")]=fl
     #runcmd=pargs + args.split.split(' ')
-    
-    #print "[*] Executing: ",runcmd 
+    #print "[*] Executing: ",' '.join(runcmd)
     retc = run(runcmd)
     if config.CLEANOUT == True:
         gau.delete_out_file(tfl)

@@ -58,3 +58,7 @@ fuzzer-code/logs
 
 *.svg
 subjects/
+
+fuzzer-code/datatemp/md5
+fuzzer-code/datatemp/*
+fuzzer-code/nohup*

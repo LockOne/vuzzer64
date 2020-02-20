@@ -236,78 +236,78 @@ def create_files(num):
     return 0
 
 def taint_mutate(ch, pl, ga):
+  if config.REL_STATUS == 0:
+    return taint_based_change(ga.mutate(ch,pl), pl)
   rel_bytes_set = set()
-  if pl not in config.REL_BYTES_MAP:
-    if pl in config.TC_TARGET:
-      target_func = None
-      if pl not in config.TC_TARGET_BAN:
-        target_func = config.TC_TARGET[pl][0]
-        config.TC_TARGET_BAN[pl] = set()
-      else : 
-        for tf in config.TC_TARGET[pl]:
-          if tf not in config.TC_TARGET_BAN[pl] and tf in config.REL_FUNC:
-            target_Func = tf
-            break 
-        if target_func is None:
-          config.TC_TARGET_BAN[pl] = set ()
-          return taint_based_change(ga.mutate(ch, pl),pl)
-      target_func_bytes_set = set()
-      if target_func not in config.FUNC_EXEC:
-        print "[*]", pl, ", ", target_func, " not in config.FUNC_EXEC "
-        config.FUNC_EXEC[target_func] = dict()
-        config.FUNC_EXEC[target_func][target_func] = 1
+  if pl in config.TC_TARGET:
+    target_func = None
+    if pl not in config.TC_TARGET_BAN:
+      target_func = config.TC_TARGET[pl][0]
+      config.TC_TARGET_BAN[pl] = set()
+    else : 
+      for tf in config.TC_TARGET[pl]:
+        if tf not in config.TC_TARGET_BAN[pl] and tf in config.REL_FUNC:
+          target_Func = tf
+          break 
+      if target_func is None:
+        config.TC_TARGET_BAN[pl] = set ()
         return taint_based_change(ga.mutate(ch, pl),pl)
-      rel_funcs = []
-      target_exec = config.FUNC_EXEC[target_func][target_func]
-      for func in config.REL_FUNC[target_func]:
-        if func not in config.FUNC_EXEC[target_func]:
-          config.FUNC_EXEC[target_func][func] = 1
+    target_func_bytes_set = set()
+    if target_func not in config.FUNC_EXEC:
+      print "[*]", pl, ", ", target_func, " not in config.FUNC_EXEC "
+      config.FUNC_EXEC[target_func] = dict()
+      config.FUNC_EXEC[target_func][target_func] = 1
+      return taint_based_change(ga.mutate(ch, pl),pl)
+    rel_funcs = []
+    target_exec = config.FUNC_EXEC[target_func][target_func]
+    for func in config.REL_FUNC[target_func]:
+      if func not in config.FUNC_EXEC[target_func]:
+        config.FUNC_EXEC[target_func][func] = 1
+        continue
+      thres = config.REL_THRESHOLD1
+      if config.REL_STATUS == 2:
+        thres = config.REL_THRESHOLD2
+      if (config.FUNC_EXEC[target_func][func] // target_exec) >= thres:
+        if func == target_func:
           continue
-        if config.FUNC_EXEC[target_func][func] // target_exec >= config.REL_THRESHOLD:
-          if func == target_func:
-            continue
-          rel_funcs.append(func)
-      rel_funcs = config.REL_FUNC[target_func] 
-      try:
-        for func in rel_funcs:
-          if func in config.FUNC_TAINTMAP[pl]:
-            rel_bytes_set |= config.FUNC_TAINTMAP[pl][func] #union
-          if func in config.FUNC_LEAMAP[pl]:
-            rel_bytes_set |= config.FUNC_LEAMAP[pl][func]
-      except KeyError:
-        pass
-      rel_bytes_set |= target_func_bytes_set
-      if len(rel_bytes_set) == 0:
-        print "[*] Warning : empty rel bytes set :",pl
-        print "# of rel_func :",len(rel_funcs)
-        if pl not in config.TC_TARGET_BAN:
-          config.TC_TARGET_BAN[pl] = {target_func}
-        else:
-          config.TC_TARGET_BAN[pl].add(target_func)
-        return taint_based_change(ga.mutate(ch, pl),pl)
-      config.REL_BYTES_MAP[pl] = rel_bytes_set
-    else:
-      print "[*] can't get target function of ",pl
+        rel_funcs.append(func)
+    rel_funcs = config.REL_FUNC[target_func] 
+    try:
+      for func in rel_funcs:
+        if func in config.FUNC_TAINTMAP[pl]:
+          rel_bytes_set |= config.FUNC_TAINTMAP[pl][func] #union
+        if func in config.FUNC_LEAMAP[pl]:
+          rel_bytes_set |= config.FUNC_LEAMAP[pl][func]
+    except KeyError:
+      pass
+    rel_bytes_set |= target_func_bytes_set
+    if len(rel_bytes_set) == 0:
+      print "[*] Warning : empty rel bytes set :",pl
+      print "# of rel_func :",len(rel_funcs)
+      if pl not in config.TC_TARGET_BAN:
+        config.TC_TARGET_BAN[pl] = {target_func}
+      else:
+        config.TC_TARGET_BAN[pl].add(target_func)
       return taint_based_change(ga.mutate(ch, pl),pl)
   else:
-    rel_bytes_set = config.REL_BYTES_MAP[pl]
+    print "[*] can't get target function of ",pl
+    return taint_based_change(ga.mutate(ch, pl),pl)
     
   tmpp = os.path.join(config.BASETMP, "tmpout")
-  for i in range(config.TRY_MUTATE):
-    chlist = list(ch)
-    for byte in rel_bytes_set:
-      if byte >= len(chlist):
-        continue
-      try:
-        tval = random.randint(0,255)
-        chlist[byte] = chr(tval)
-      except IndexError:
-        pass
-    writeFile(tmpp, ''.join(chlist))
-    args=config.SUT % tmpp
-    retc, lava_code = run(args.split(' '))
-    if retc not in config.NON_CRASH_RET_CODES and lava_code not in config.LAVA_CRASH:
-      return ''.join(chlist)
+  chlist = list(ch)
+  for byte in rel_bytes_set:
+    if byte >= len(chlist):
+      continue
+    try:
+      tval = random.randint(0,255)
+      chlist[byte] = chr(tval)
+    except IndexError:
+      pass
+  writeFile(tmpp, ''.join(chlist))
+  args=config.SUT % tmpp
+  retc, lava_code = run(args.split(' '))
+  if retc not in config.NON_CRASH_RET_CODES and lava_code not in config.LAVA_CRASH:
+    return ''.join(chlist)
   print "[*] taint_mutated : ",pl," : ", str(len(rel_bytes_set))," bytes"
   return taint_based_change(''.join(chlist), pl)
 

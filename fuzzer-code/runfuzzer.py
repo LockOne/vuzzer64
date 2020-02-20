@@ -98,7 +98,7 @@ def sha1OfFile(filepath):
 def bbdict(fn):
     with open(fn,"r") as bbFD:
        bb = {}
-       funclist = []
+       funcset = set()
        flag = 0
        for ln in bbFD:
          if flag == 0:
@@ -115,33 +115,17 @@ def bbdict(fn):
              funcname, funcoffset = tuple(ln.strip().split(","))
            except :
              #retry
-             funclist = []
+             funcset = set()
              config.OFFSET_FUNCNAME = dict()
              bb = {}
              flag = 0
              continue
-           if funcname in funclist:
+           if funcname in funcset:
              continue
-           funclist.append(funcname)
+           funcset.add(funcname)
            config.OFFSET_FUNCNAME[long(funcoffset[2:], 16)] = funcname
 
-       for fn1 in funclist:
-         for fn2 in funclist:
-           if fn1 in config.FUNC_EXEC:
-             if fn2 in config.FUNC_EXEC[fn1]:
-               config.FUNC_EXEC[fn1][fn2] += 1
-             else:
-               config.FUNC_EXEC[fn1][fn2] = 1
-           else:
-             config.FUNC_EXEC[fn1] = {fn2 : 1}
-
-           if fn2 in config.FUNC_EXEC:
-             if fn1 in config.FUNC_EXEC[fn2]:
-               config.FUNC_EXEC[fn2][fn1] += 1
-             else:
-               config.FUNC_EXEC[fn2][fn1] = 1
-           else:
-             config.FUNC_EXEC[fn2] = {fn1 : 1}
+       record_funcexec(funcset)
        return bb
 
 
@@ -354,20 +338,28 @@ def read_lea(fl):
     leaFD.close()
     return offsets.copy()
 
-def read_func(fl):
-    if ((not os.path.isfile("func.out")) or os.path.getsize("func.out") == 0):
-      print "[*] Warning! empty func.out file!"
-      return
-    funcFD = open("func.out", "r")
-    funclist = []
-    for ln in funcFD:
-      funcname, funcoffset = tuple(ln.strip().split(","))
-      if funcname in funclist:
-        continue
-      funclist.append(funcname)
-      config.OFFSET_FUNCNAME[long(funcoffset)] = funcname
-    for fn1 in funclist:
-      for fn2 in funclist:
+def record_funcexec(funcset):
+  funchash = 0
+  hashidx = 0
+
+  func_orig_set = set()
+  for func in funcset:
+    func_orig_set.add(func)
+
+  for func in config.FUNC_ID_MAP:
+    if func in funcset:
+      funchash = funchash | (1 << hashidx)
+      funcset.remove(func)
+    hashidx += 1
+
+  for func in funcset:
+    config.FUNC_ID_MAP.append(func)
+    funchash = funchash | (1 << hashidx)
+    hashidx += 1
+
+  if funchash not in config.FUNC_HASH_SET:
+    for fn1 in func_orig_set:
+      for fn2 in func_orig_set:
         if fn1 in config.FUNC_EXEC:
           if fn2 in config.FUNC_EXEC[fn1]:
             config.FUNC_EXEC[fn1][fn2] += 1
@@ -383,10 +375,34 @@ def read_func(fl):
             config.FUNC_EXEC[fn2][fn1] = 1
         else: 
           config.FUNC_EXEC[fn2] = {fn1 : 1}
+    config.FUNC_HASH_SET.add(funchash)
+
+
+
+def read_func(fl):
+    if ((not os.path.isfile("func.out")) or os.path.getsize("func.out") == 0):
+      print "[*] Warning! empty func.out file!"
+      return
+    funcFD = open("func.out", "r")
+    funcset = set()
+    for ln in funcFD:
+      funcname, funcoffset = tuple(ln.strip().split(","))
+      if funcname in funcset:
+        continue
+      funcset.add(funcname)
+      config.OFFSET_FUNCNAME[long(funcoffset)] = funcname
+    funcFD.close()
+    record_funcexec(funcset)
+    
     funcFD.close()
 
 def check_timeout():
-    if (time.time() - config.START_TIME) > config.TOTAL_TIMEOUT:
+    cur_time = time.time() - config.START_TIME
+    if (config.REL_STATUS == 0 and cur_time > config.REL_TIMEOUT1):
+      config.REL_STATUS = 1
+    elif (config.REL_STATUS == 1 and cur_time > config.REL_TIMEOUT2):
+      config.REL_STATUS = 2
+    if (cur_time) > config.TOTAL_TIMEOUT:
       print "[**] Timeout reached"
       if config.START_TIME != 0:
         print "[**] Totol time %f sec."%(time.time() -config.START_TIME,)
@@ -401,7 +417,6 @@ def read_taint(fpath, fl):
     Currently, we want to extract values s.t. one of the operands of CMP instruction is imm value for this set of values.
     ADDITION: we also read lea.out file to know offsets that were used in LEA instructions. There offsets are good candidates to fuzz with extreme values, like \xffffffff, \x80000000.
     '''
-
     taintOff=dict()#dictionary to keep info about single tainted offsets and values.
     alltaintoff=set()#it keeps all the offsets (expluding the above case) that were used at a CMP instruction.
     func_taintmap = dict()

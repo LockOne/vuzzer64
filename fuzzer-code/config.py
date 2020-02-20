@@ -223,16 +223,23 @@ MAXINPUTLEN=50000 # this is the limit (50kb) on length of the input. After that 
 
 FLASK=False
 
-FUNC_EXEC = dict()
+FUNC_EXEC = dict()  # FUNC_EXEC[string][string] = u32
+FUNC_HASH_SET = set()  #FUNC_HASH_SET : {[u32],[u32],...}
+FUNC_ID_MAP = []   # [string]
+
 START_TIME = 0
 TOTAL_TIMEOUT = 24 * 60 * 60
+REL_TIMEOUT1 = TOTAL_TIMEOUT * 0.3
+REL_TIMEOUT2 = TOTAL_TIMEOUT * 0.7
+REL_STATUS = 0
 BB_FUNC_MAP = dict()
 OFFSET_FUNCNAME = dict()
 FUNC_TAINTMAP = dict()
 FUNC_LEAMAP = dict()
 TC_TARGET = dict()
 TC_TARGET_BAN = dict()
-REL_THRESHOLD = 0.5
+REL_THRESHOLD1 = 0.8
+REL_THRESHOLD2 = 0.5
 MUTPROB = 5 # 20%
 BYTES_SET_THRESHOLD = 20
 TRY_MUTATE = 1

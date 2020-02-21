@@ -20,6 +20,7 @@ import binascii as bina
 import copy
 import re
 import hashlib
+import signal
 
 
 import gautils as gau
@@ -31,6 +32,14 @@ import argparse
 #config.MOSTCOMFLAG=False # this is set once we compute taint for initial inputs.
 libfd=open("image.offset","r+b")
 libfd_mm=mmap.mmap(libfd.fileno(),0)
+
+def signal_handler(sig, frame):
+  print('[*] User terminated the process...')
+  if config.START_TIME != 0:
+    print"[**] Total time %f sec."%(time.time() - config.START_TIME)
+  print "[**] Fuzzing done. Check %s to see if there were crashes.."%(config.ERRORS,)
+  exit(0)
+
 
 def check_timeout():
   if (time.time() - config.START_TIME) > config.TOTAL_TIMEOUT:
@@ -982,12 +991,12 @@ def main():
     
 
 if __name__ == '__main__':
-    
+    signal.signal(signal.SIGINT, signal_handler) 
+    main()
 
+    '''
     fuzzthread = threading.Thread(target = main)
-
     fuzzthread.start()
-
     if config.FLASK:
-
         socketio.run(app, host="0.0.0.0", port=5000)
+    '''

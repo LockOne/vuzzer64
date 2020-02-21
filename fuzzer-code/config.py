@@ -229,5 +229,5 @@ START_TIME = 0
 
 LAVA=False
 LAVA_CRASH= set()
-NON_CRASH_RET_CODES=[0,1]
+NON_CRASH_RET_CODES=[0,1,127]
 LOGS = os.path.join(mydir, "logs")

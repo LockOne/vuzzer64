@@ -132,13 +132,13 @@ TMPBBINFO=dict()
 PREVBBINFO=dict() #this keeps special entries for the previous generation. It is used to delete inputs which are superceded by newer inputs in dicovering new BBs.
 
 #a list to keep inputs that have triggered a new BB in generation. Such inputs will get a chance in the next generation as it is (no mutaiton/crossover).
-SPECIALENTRY=[]
 SPECIAL=os.path.join(BASETMP,"special/") #direcroty to keep inputs that discovered new paths.
 TAINTTMP=os.path.join(BASETMP,"tainttmp/")# directory to keep sampled inputs from SPECIAL dir in case we get many such inputs. 
 SPECIALDEL=set()#this set contains inputs from special that needs to be deleted as newer inputs cover paths executed by these inputs.
 LESSPRUNE=False#True #this is set to do less aggressive input pruning, when deleting inputs that are no longer corresponding to newer paths.
 BBFORPRUNE=[]# this is the list that keeps the number of newly discovered BB and is used by the code (for forming bitvectors) when pruning the inputs.
-SPECIALBITVECTORS=dict()# dicntionarty to keep bitvectors for the special inputs. This is used to prune the inputs by comparing the bitvectors.
+SPECIAL_BITVECTOR = set()
+SPECIAL_BITVECTOR_FL = dict()
 # The following list has two sets as elements which contain all strings (from NAMESPICKLE files) that are used during population generations.
 ALLSTRINGS=[]# this will be populated by two sets A,B. A= set of full strings from binary. B= set of individual bytes from the binary.
 NOFFBYTES=True # this is a flag to ignore \xff\xff\xff\xff (which is -1) immediate.

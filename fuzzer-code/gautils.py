@@ -527,12 +527,13 @@ def fitnesCal2(bbdict, cinput,ilen, retc):
     tset=set(bbdict)-errorset # we make sure that newly discovered BBs are not related to error BB.
     config.cPERGENBB.update(tset)
     #check new coverage
+    '''
     if (not tset <= config.SEENBB) : #and (retc in config.NON_CRASH_RET_CODES):
         diffb=tset-config.SEENBB 
         #let input pruning, lets set the flag is this input has found a new BB
         config.GOTSPECIAL=True
         config.SEENBB.update(diffb)
-
+    '''
     #bbf = open(os.path.join(config.LOGS,"BB_weights.log"), "a")
     func_sum = dict()
     #bbf2 = open(os.path.join(config.LOGS,"BB_address.csv"),"a")

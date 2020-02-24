@@ -158,7 +158,6 @@ def form_bitvector2(bbdict, name, source, dest):
     newbb=0
     temp=set()
     for bbadr in bbdict:
-        
         temp.add(bbadr)
         if bbadr not in source:
             #added for bit vector formation
@@ -177,6 +176,26 @@ def form_bitvector2(bbdict, name, source, dest):
         dest[name]=tbv.deep_copy()
     del tbv
 
+def gen_bitvector(bbdict, source):
+    ''' This function forms bit vector for a given bbdict trace for an input name, using the vector info from souce, updates the source and finally append  to dest dict'''
+    newbb=0
+    temp=set()
+    for bbadr in bbdict:
+        temp.add(bbadr)
+        if bbadr not in source:
+            #added for bit vector formation
+            newbb +=1
+            source.append(bbadr)
+    tbv=BV.BitVector(size=(len(source)))
+    if newbb == 0:
+        for el in temp:
+            tbv[source.index(el)]=1
+    else:
+        for bvs in config.SPECIAL_BITVECTOR:
+            bvs.pad_from_right(newbb)
+        for el in temp:
+            tbv[source.index(el)]=1
+    return tbv
 
 def calculate_error_bb():
     ''' this function calculates probably error handling bbs. the heuristic is:
@@ -227,6 +246,12 @@ def execute(tfl):
     bbs = bbdict(config.BBOUT)
     if config.CLEANOUT == True:
         gau.delete_out_file(tfl)
+
+    if len(bbs) == 0:
+      print ("[**] Error : # of executed BB is zero " )
+      exit(80)
+   
+    print ("[**] # of executed BB : " + str(len(bbs)))
     return (bbs,retc,lava_code)
 
 def get_hexStr(inp):
@@ -981,7 +1006,6 @@ def main():
     keepslide=3
     keepfilenum=config.BESTP
     config.SEENBB.clear()#initialize set of BB seen so far, which is 0
-    #del config.SPECIALENTRY[:]
     todelete=set()#temp set to keep file names that will be deleted in the special folder
     check_timeout()
     while True:
@@ -1017,6 +1041,7 @@ def main():
             #copy_files(config.INITIALD,config.INPUTD,1)
         files=os.listdir(config.INPUTD)
         per_gen_fnum=0
+        execute_time = time.time() 
         #count BB and calculate fitness function for each TC.
         for fl in files:
               check_timeout()
@@ -1027,7 +1052,8 @@ def main():
               progname = os.path.basename(args[0])
               (bbs,retc,lava_code)=execute(tfl) #count bb
               if per_gen_fnum % 10 ==0:
-                  print "[**] Gen: %d. Executed %d of %d.**"%(genran,per_gen_fnum,config.POPSIZE)
+                  print "[**] Gen: %d. Executed %d of %d.**, took %f sec"%(genran,per_gen_fnum,config.POPSIZE, time.time() -execute_time)
+                  execute_time = time.time()
               if config.BBWEIGHT == True: #True by default
                   fitnes[fl]=gau.fitnesCal2(bbs,fl,iln, retc)
               else:
@@ -1035,25 +1061,16 @@ def main():
               execs+=1
               #let us prune the inputs(if at all), whose trace is subset of the new input just got executed.
               SPECIALADDED= False
-              if config.GOTSPECIAL==True : #and (retc in config.NON_CRASH_RET_CODES) :
+              if True : #config.GOTSPECIAL==True : #and (retc in config.NON_CRASH_RET_CODES) :
                   SPECIALCHANGED=True
                   SPECIALADDED= True
                   todelete.clear()
-                  form_bitvector2(bbs,fl,config.BBFORPRUNE,config.SPECIALBITVECTORS)
-                  shutil.copy(tfl,config.SPECIAL)
-                  config.SPECIALENTRY.append(fl)
-                  for sfl,bitv in config.SPECIALBITVECTORS.iteritems():
-                      if sfl == fl:
-                          continue
-                      if (config.SPECIALBITVECTORS[fl] & bitv) == bitv:
-                          tpath=os.path.join(config.SPECIAL,sfl)
-                          os.remove(tpath)
-                          todelete.add(sfl)
-                          config.SPECIALENTRY.remove(sfl)
-                          if sfl in config.TAINTMAP:
-                              del config.TAINTMAP[sfl]
-                  for ele in todelete:
-                      del config.SPECIALBITVECTORS[ele]
+                  tbv = gen_bitvector(bbs, config.BBFORPRUNE)
+                  #form_bitvector2(bbs,fl,config.BBFORPRUNE,config.SPECIALBITVECTORS)
+                  if tbv not in config.SPECIAL_BITVECTOR:
+                    config.SPECIAL_BITVECTOR.add(tbv)
+                    shutil.copy(tfl, config.SPECIAL)
+                    #config.SPECIAL_BITVECTOR_FL[fl] = tbv
 
               if retc not in config.NON_CRASH_RET_CODES and (lava_code not in config.LAVA_CRASH or lava_code == 0):
                   config.LAVA_CRASH.add(lava_code)

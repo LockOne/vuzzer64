@@ -241,17 +241,19 @@ def taint_mutate(ch, pl, ga):
   rel_bytes_set = set()
   if pl in config.TC_TARGET:
     target_func = None
+
     if pl not in config.TC_TARGET_BAN:
-      target_func = config.TC_TARGET[pl][0]
       config.TC_TARGET_BAN[pl] = set()
-    else : 
-      for tf in config.TC_TARGET[pl]:
-        if tf not in config.TC_TARGET_BAN[pl] and tf in config.REL_FUNC:
-          target_Func = tf
-          break 
-      if target_func is None:
-        config.TC_TARGET_BAN[pl] = set ()
-        return taint_based_change(ga.mutate(ch, pl),pl)
+
+    for tf in config.TC_TARGET[pl]:
+      if tf not in config.TC_TARGET_BAN[pl] and tf in config.REL_FUNC:
+        target_Func = tf
+        break 
+
+    if target_func is None:
+      config.TC_TARGET_BAN[pl] = set ()
+      return taint_based_change(ga.mutate(ch, pl),pl)
+
     target_func_bytes_set = set()
     if target_func not in config.FUNC_EXEC:
       print "[*]", pl, ", ", target_func, " not in config.FUNC_EXEC "

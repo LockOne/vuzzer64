@@ -269,6 +269,8 @@ def taint_mutate(ch, pl, ga):
       thres = config.REL_THRESHOLD1
       if config.REL_STATUS == 2:
         thres = config.REL_THRESHOLD2
+      elif config.REL_STATUS == 3:
+        thres = config.REL_THRESHOLD3
       if (config.FUNC_EXEC[target_func][func] // target_exec) >= thres:
         if func == target_func:
           continue
@@ -529,13 +531,11 @@ def fitnesCal2(bbdict, cinput,ilen, retc):
     tset=set(bbdict)-errorset # we make sure that newly discovered BBs are not related to error BB.
     config.cPERGENBB.update(tset)
     #check new coverage
-    '''
     if (not tset <= config.SEENBB) : #and (retc in config.NON_CRASH_RET_CODES):
         diffb=tset-config.SEENBB 
         #let input pruning, lets set the flag is this input has found a new BB
         config.GOTSPECIAL=True
         config.SEENBB.update(diffb)
-    '''
     #bbf = open(os.path.join(config.LOGS,"BB_weights.log"), "a")
     func_sum = dict()
     #bbf2 = open(os.path.join(config.LOGS,"BB_address.csv"),"a")

@@ -427,6 +427,8 @@ def check_timeout():
       config.REL_STATUS = 1
     elif (config.REL_STATUS == 1 and cur_time > config.REL_TIMEOUT2):
       config.REL_STATUS = 2
+    elif (config.REL_STATUS == 2 and cur_time > config.REL_TIMEOUT3):
+      config.REL_STATUS = 3
     if (cur_time) > config.TOTAL_TIMEOUT:
       print "[**] Timeout reached"
       if config.START_TIME != 0:
@@ -1061,7 +1063,7 @@ def main():
               execs+=1
               #let us prune the inputs(if at all), whose trace is subset of the new input just got executed.
               SPECIALADDED= False
-              if True : #config.GOTSPECIAL==True : #and (retc in config.NON_CRASH_RET_CODES) :
+              if config.GOTSPECIAL == True : #config.GOTSPECIAL==True : #and (retc in config.NON_CRASH_RET_CODES) :
                   SPECIALCHANGED=True
                   SPECIALADDED= True
                   todelete.clear()
